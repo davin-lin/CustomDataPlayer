@@ -1,0 +1,46 @@
+# =========================
+# Visual Studio
+# =========================
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.db-shm
+*.VC.db-wal
+*.VC.opendb
+
+# =========================
+# Build artifacts
+# =========================
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Intermediate files
+*.tlog
+*.ilk
+*.obj
+*.iobj
+*.ipch
+*.pdb
+*.ipdb
+*.idb
+*.lastbuildstate
+*.recipe
+*.Build.CppClean.log
+*.FileListAbsolute.txt
+
+# =========================
+# OS files
+# =========================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store

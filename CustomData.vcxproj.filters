@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomMetadata\json_data.h">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomMetadata\usr.pb.cc">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\audio_decoder.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\audio_player.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\clock.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\decoder.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\demuxer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\event_loop.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\frame.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\frame_queue.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\packet_queue.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\player.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\thread_base.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\video_decoder.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AVPlayer\src\video_player.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CustomMetadata\usr.proto" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CustomMetadata\usr.pb.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomMetadata\proto_data.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\audio_decoder.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\audio_player.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\clock.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\context.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\decoder.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\demuxer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\event_loop.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\frame.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\frame_queue.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\opts.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\packet_queue.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\player.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\thread_base.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\video_decoder.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\video_player.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomMetadata\json.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
