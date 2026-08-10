@@ -1,3 +1,4 @@
+#include "CustomMetadata/custom_data.h"
 #include "CustomMetadata/json_data.h"
 #include "CustomMetadata/proto_data.h"
 #include "event_loop.h"
@@ -26,7 +27,7 @@ int main(int argc, char** argv) {
 	//	return -1;
 	//}
 
-	const char* mediaPath = (argc > 1) ? argv[1] : "D:\\software\\VisualStudio\\code\\CustomData\\walking-dead-json.mp4";
+	const char* mediaPath = (argc > 1) ? argv[1] : DEFAULT_MEDIA_PATH;
 	Player player;
 	player.Open(mediaPath);
 	player.Start();

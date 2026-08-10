@@ -18,8 +18,8 @@ int Player::Open(const char* filename) {
 
     demuxer_->Open();
 
-    // 读取 MP4 全局 metadata 中的自定义 JSON 数据
-    CustomData data = ParseCustomDataFromJson(ctx_->fmtCtx_);
+    // 读取 MP4 全局 metadata 中的自定义数据(格式由 CUSTOM_DATA_FORMAT 宏控制)
+    CustomData data = ParseCustomData(ctx_->fmtCtx_);
     ctx_->hasCustomData_ = data.hasData;
     ctx_->usrName_ = data.usrName;
     ctx_->usrCompany_ = data.usrCompany;

@@ -43,59 +43,59 @@ public:
     }
 
 private:
-    const char* filename_ = nullptr; // �ļ���
+    const char* filename_ = nullptr; // 文件名
 
-    AVFormatContext* fmtCtx_ = nullptr; // ���װ��������
+    AVFormatContext* fmtCtx_ = nullptr; // AVFormatContext 解封装上下文
 
-    int             audioIndex_ = -1;          // ��Ƶ������
-    AVCodecContext* audioCodecCtx_ = nullptr; // ��Ƶ��������������
-    AVStream* audioStream_ = nullptr;    // ��Ƶ��
-    PacketQueue     audioPacketQueue_;        // ��Ƶpacket����
-    Clock           audioClock_{ &audioPacketQueue_.serial_, SYNC_TYPE_AUDIO };               // ��Ƶʱ��
-    FrameQueue      audioFrameQueue_{ &audioPacketQueue_ ,AUDIO_FRAME_QUEUE_SIZE, 1 }; //��Ƶ֡����
+    int             audioIndex_ = -1;          // 音频流索引
+    AVCodecContext* audioCodecCtx_ = nullptr; // 音频解码器上下文
+    AVStream* audioStream_ = nullptr;    // 音频流
+    PacketQueue     audioPacketQueue_;        // 音频包队列
+    Clock           audioClock_{ &audioPacketQueue_.serial_, SYNC_TYPE_AUDIO };               // 音频时钟
+    FrameQueue      audioFrameQueue_{ &audioPacketQueue_ ,AUDIO_FRAME_QUEUE_SIZE, 1 }; // 音频帧队列
     SwrContext* audioSwrCtx_ = nullptr;
 
-    int             videoIndex_ = -1;          // ��Ƶ������
-    AVCodecContext* videoCodecCtx_ = nullptr; // ��Ƶ��������������
-    AVStream* videoStream_ = nullptr;    // ��Ƶ��
-    PacketQueue     videoPacketQueue_;        // ��Ƶpacket����
-    Clock           videoClock_{ &videoPacketQueue_.serial_, SYNC_TYPE_VIDEO };               // ��Ƶʱ��
-    AVRational      videoFrameRate_;          // ��Ƶ֡��
-    FrameQueue      videoFrameQueue_{ &videoPacketQueue_, VIDEO_FRAME_QUEUE_SIZE, 1 }; // ��Ƶ֡����
-    double          videoFrameTimer_ = 0.0; // ��¼���һ֡��Ƶ���ŵ�ʱ��
+    int             videoIndex_ = -1;          // 视频流索引
+    AVCodecContext* videoCodecCtx_ = nullptr; // 视频解码器上下文
+    AVStream* videoStream_ = nullptr;    // 视频流
+    PacketQueue     videoPacketQueue_;        // 视频包队列
+    Clock           videoClock_{ &videoPacketQueue_.serial_, SYNC_TYPE_VIDEO };               // 视频时钟
+    AVRational      videoFrameRate_;          // 视频帧率
+    FrameQueue      videoFrameQueue_{ &videoPacketQueue_, VIDEO_FRAME_QUEUE_SIZE, 1 }; // 视频帧队列
+    double          videoFrameTimer_ = 0.0; // 记录最后一帧视频播放的时刻
 
-    int             subtitleIndex_ = -1;          // ��Ļ������
-    AVCodecContext* subtitleCodecCtx_ = nullptr; // ��Ļ��������������
-    AVStream* subtitleStream_ = nullptr;    // ��Ļ��
-    PacketQueue     subtitlePacketQueue_;        // ��Ļpacket����
-    FrameQueue      subtitleFrameQueue_{ &subtitlePacketQueue_ , SUBTITLE_FRAME_QUEUE_SIZE, 1 }; // ��Ļ֡����
+    int             subtitleIndex_ = -1;          // 字幕流索引
+    AVCodecContext* subtitleCodecCtx_ = nullptr; // 字幕解码器上下文
+    AVStream* subtitleStream_ = nullptr;    // 字幕流
+    PacketQueue     subtitlePacketQueue_;        // 字幕包队列
+    FrameQueue      subtitleFrameQueue_{ &subtitlePacketQueue_ , SUBTITLE_FRAME_QUEUE_SIZE, 1 }; // 字幕帧队列
 
     // TODO
-    // Clock           extern_clock{&extern_clock.m_serial, SYNC_TYPE_EXTERN};                 // �ⲿʱ��
+    // Clock           extern_clock{&extern_clock.m_serial, SYNC_TYPE_EXTERN};                 // 外部时钟
 
-    double maxFrameDuration_ = 0.0; // һ֡�������
+    double maxFrameDuration_ = 0.0; // 一帧的最大间隔
 
     std::mutex pauseMutex_;
     std::condition_variable pauseCond_;
-    std::atomic<bool> paused_ = false; // ��ͣ/�ָ�����
-    std::atomic<bool> stop_ = false;   // ֹͣ����
+    std::atomic<bool> paused_ = false; // 暂停/播放
+    std::atomic<bool> stop_ = false;   // 停止
 
-    // seek����
-    std::atomic<bool> seekReq_ = false;    // seek����
+    // seek请求
+    std::atomic<bool> seekReq_ = false;    // seek请求
     int seekFlags_ = 0;
     int64_t seekPos_ = 0;
     int64_t seekRel_ = 0;
 
     int eof_ = 0;
-    // ǿ��ˢ����Ƶ
+    // 强制刷新标志
     int forceRefresh_ = 0;
 
-    // ����Ƶͬ��
+    // 主时钟
     Clock* masterClock_ = &audioClock_;
 
-    double frameLastReturnedTime_ = 0.0; // ���ڼ�¼��һ֡�ڽ���󱻷��ص�ʱ���
-    double frameLastFilterDelay_ = 0.0;  // ���ڼ�¼��һ֡ͨ���˾�������ӳ�ʱ��
-    int frameDropsEarly_ = 0; // ͳ�Ʊ�������ʱ�������İ�������frame����֮ǰ����
+    double frameLastReturnedTime_ = 0.0; // 用于记录上一帧在解码后被返回的时间戳
+    double frameLastFilterDelay_ = 0.0;  // 用于记录上一帧通过滤镜链后的延迟时间
+    int frameDropsEarly_ = 0; // 统计被丢弃的时钟有误差的包，放入frame队列之前丢弃
     int frameDropsLate_ = 0;
 
 
