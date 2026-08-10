@@ -19,7 +19,7 @@ using json = nlohmann::json;
 const std::string g_srcPath = "D:\\software\\VisualStudio\\code\\CustomData\\walking-dead.mp4";
 const std::string g_dstPath = "D:\\software\\VisualStudio\\code\\CustomData\\walking-dead-json.mp4";
 
-static int copyMuxWithMetadata() {
+static int CopyMuxWithMetadata() {
     int ret = 0;
     AVFormatContext* in_fmt = nullptr, * out_fmt = nullptr;
     AVPacket* pkt = nullptr;
@@ -113,7 +113,7 @@ cleanup:
     return ret < 0 ? ret : 0;
 }
 
-static int verifyMetadata() {
+static int VerifyJsonMetadata() {
     AVFormatContext* fmt_ctx = nullptr;
     int ret = avformat_open_input(&fmt_ctx, g_dstPath.c_str(), nullptr, nullptr);
     if (ret < 0)

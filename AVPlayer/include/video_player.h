@@ -1,6 +1,7 @@
 #pragma once
 
 #include "context.h"
+#include "ttf_renderer.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -13,7 +14,7 @@ extern "C" {
 #define SDL_WINDOW_DEFAULT_HEIGHT (720)
 
 class VideoPlayer {
-    friend Uint32 callback(Uint32 internal, void* param);
+    friend Uint32 callback(Uint32 interval, void* param);
 public:
     VideoPlayer(std::shared_ptr<Context> ctx);
     int Open();
@@ -54,4 +55,6 @@ private:
     int offsetX_ = 0;
     int offsetY_ = 0;
     bool isFullScreen_ = false;
+
+    TTFRenderer ttfRenderer_;
 };

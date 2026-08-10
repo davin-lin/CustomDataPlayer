@@ -19,7 +19,7 @@ extern "C"
 const std::string g_srcProtoPath = "D:\\software\\VisualStudio\\code\\CustomData\\walking-dead.mp4";
 const std::string g_dstProtoPath = "D:\\software\\VisualStudio\\code\\CustomData\\walking-dead-protobuf.mp4";
 
-int copyMuxWithProtobufMeta() {
+int CopyMuxWithProtobufMeta() {
 	int ret = 0;
 	AVFormatContext* in_fmt = nullptr, * out_fmt = nullptr;
 	AVPacket* pkt = nullptr;
@@ -110,7 +110,7 @@ cleanup:
     return ret < 0 ? ret : 0;
 }
 
-int verifyProtobufMeta() {
+int VerifyProtobufMeta() {
     AVFormatContext* fmt_ctx = nullptr;
     int ret = avformat_open_input(&fmt_ctx, g_dstProtoPath.c_str(), nullptr, nullptr);
     if (ret < 0)

@@ -139,8 +139,10 @@
     <ClCompile Include="AVPlayer\src\packet_queue.cpp" />
     <ClCompile Include="AVPlayer\src\player.cpp" />
     <ClCompile Include="AVPlayer\src\thread_base.cpp" />
+    <ClCompile Include="AVPlayer\src\ttf_renderer.cpp" />
     <ClCompile Include="AVPlayer\src\video_decoder.cpp" />
     <ClCompile Include="AVPlayer\src\video_player.cpp" />
+    <ClCompile Include="CustomMetadata\custom_data.cpp" />
     <ClCompile Include="CustomMetadata\json_data.h" />
     <ClCompile Include="CustomMetadata\usr.pb.cc" />
     <ClCompile Include="main.cpp" />
@@ -162,8 +164,10 @@
     <ClInclude Include="AVPlayer\include\packet_queue.h" />
     <ClInclude Include="AVPlayer\include\player.h" />
     <ClInclude Include="AVPlayer\include\thread_base.h" />
+    <ClInclude Include="AVPlayer\include\ttf_renderer.h" />
     <ClInclude Include="AVPlayer\include\video_decoder.h" />
     <ClInclude Include="AVPlayer\include\video_player.h" />
+    <ClInclude Include="CustomMetadata\custom_data.h" />
     <ClInclude Include="CustomMetadata\json.hpp" />
     <ClInclude Include="CustomMetadata\proto_data.h" />
     <ClInclude Include="CustomMetadata\usr.pb.h" />

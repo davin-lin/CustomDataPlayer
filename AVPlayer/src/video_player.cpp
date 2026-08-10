@@ -13,6 +13,9 @@ extern "C" {
 }
 #endif
 
+#include "../../CustomMetadata/custom_data.h"
+#include <string>
+
 static const struct TextureFormatEntry {
     enum AVPixelFormat format;
     int texture_fmt;
@@ -97,6 +100,12 @@ int VideoPlayer::Open() {
     SDL_RenderSetLogicalSize(renderer_, dstWidth_, dstHeight_);
     SDL_Rect viewport = { 0, 0, dstWidth_, dstHeight_ };
     SDL_RenderSetViewport(renderer_, &viewport);
+
+    // 初始化 TTF 渲染器，并从 Context 中设置叠加数据
+    ttfRenderer_.Init();
+    if (ctx_->hasCustomData_) {
+        ttfRenderer_.SetOverlayData(ctx_->usrName_, ctx_->usrCompany_, ctx_->usrType_);
+    }
     return 0;
 }
 
@@ -116,7 +125,7 @@ int VideoPlayer::Start() {
 }
 
 int VideoPlayer::Close() {
-    //SDL_RemoveTimer(m_timer_id);
+    ttfRenderer_.Destroy();
     return 0;
 }
 
@@ -225,6 +234,7 @@ void VideoPlayer::Display() {
     SDL_RenderClear(renderer_);
     SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
     Render();
+    ttfRenderer_.RenderOverlay(renderer_);
     SDL_RenderPresent(renderer_);
 }
 
@@ -253,6 +263,7 @@ void VideoPlayer::RenderLastTexture(Frame* vp) {
 
     SDL_Rect rect = { offset_x, offset_y, fit_w, fit_h };
     SDL_RenderCopy(renderer_, texture_, nullptr, &rect);
+    ttfRenderer_.RenderOverlay(renderer_);
     SDL_RenderPresent(renderer_);
 }
 

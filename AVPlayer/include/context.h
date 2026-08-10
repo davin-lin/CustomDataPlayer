@@ -2,6 +2,7 @@
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+#include <string>
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,59 +43,59 @@ public:
     }
 
 private:
-    const char* filename_ = nullptr; // ÎÄ¼şÃû
+    const char* filename_ = nullptr; // ï¿½Ä¼ï¿½ï¿½ï¿½
 
-    AVFormatContext* fmtCtx_ = nullptr; // ½â·â×°Æ÷ÉÏÏÂÎÄ
+    AVFormatContext* fmtCtx_ = nullptr; // ï¿½ï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-    int             audioIndex_ = -1;          // ÒôÆµÁ÷Ë÷Òı
-    AVCodecContext* audioCodecCtx_ = nullptr; // ÒôÆµÁ÷½âÂëÆ÷ÉÏÏÂÎÄ
-    AVStream* audioStream_ = nullptr;    // ÒôÆµÁ÷
-    PacketQueue     audioPacketQueue_;        // ÒôÆµpacket¶ÓÁĞ
-    Clock           audioClock_{ &audioPacketQueue_.serial_, SYNC_TYPE_AUDIO };               // ÒôÆµÊ±ÖÓ
-    FrameQueue      audioFrameQueue_{ &audioPacketQueue_ ,AUDIO_FRAME_QUEUE_SIZE, 1 }; //ÒôÆµÖ¡¶ÓÁĞ
+    int             audioIndex_ = -1;          // ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    AVCodecContext* audioCodecCtx_ = nullptr; // ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    AVStream* audioStream_ = nullptr;    // ï¿½ï¿½Æµï¿½ï¿½
+    PacketQueue     audioPacketQueue_;        // ï¿½ï¿½Æµpacketï¿½ï¿½ï¿½ï¿½
+    Clock           audioClock_{ &audioPacketQueue_.serial_, SYNC_TYPE_AUDIO };               // ï¿½ï¿½ÆµÊ±ï¿½ï¿½
+    FrameQueue      audioFrameQueue_{ &audioPacketQueue_ ,AUDIO_FRAME_QUEUE_SIZE, 1 }; //ï¿½ï¿½ÆµÖ¡ï¿½ï¿½ï¿½ï¿½
     SwrContext* audioSwrCtx_ = nullptr;
 
-    int             videoIndex_ = -1;          // ÊÓÆµÁ÷Ë÷Òı
-    AVCodecContext* videoCodecCtx_ = nullptr; // ÊÓÆµÁ÷½âÂëÆ÷ÉÏÏÂÎÄ
-    AVStream* videoStream_ = nullptr;    // ÊÓÆµÁ÷
-    PacketQueue     videoPacketQueue_;        // ÊÓÆµpacket¶ÓÁĞ
-    Clock           videoClock_{ &videoPacketQueue_.serial_, SYNC_TYPE_VIDEO };               // ÊÓÆµÊ±ÖÓ
-    AVRational      videoFrameRate_;          // ÊÓÆµÖ¡ÂÊ
-    FrameQueue      videoFrameQueue_{ &videoPacketQueue_, VIDEO_FRAME_QUEUE_SIZE, 1 }; // ÊÓÆµÖ¡¶ÓÁĞ
-    double          videoFrameTimer_ = 0.0; // ¼ÇÂ¼×îºóÒ»Ö¡ÊÓÆµ²¥·ÅµÄÊ±¿Ì
+    int             videoIndex_ = -1;          // ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    AVCodecContext* videoCodecCtx_ = nullptr; // ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    AVStream* videoStream_ = nullptr;    // ï¿½ï¿½Æµï¿½ï¿½
+    PacketQueue     videoPacketQueue_;        // ï¿½ï¿½Æµpacketï¿½ï¿½ï¿½ï¿½
+    Clock           videoClock_{ &videoPacketQueue_.serial_, SYNC_TYPE_VIDEO };               // ï¿½ï¿½ÆµÊ±ï¿½ï¿½
+    AVRational      videoFrameRate_;          // ï¿½ï¿½ÆµÖ¡ï¿½ï¿½
+    FrameQueue      videoFrameQueue_{ &videoPacketQueue_, VIDEO_FRAME_QUEUE_SIZE, 1 }; // ï¿½ï¿½ÆµÖ¡ï¿½ï¿½ï¿½ï¿½
+    double          videoFrameTimer_ = 0.0; // ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ò»Ö¡ï¿½ï¿½Æµï¿½ï¿½ï¿½Åµï¿½Ê±ï¿½ï¿½
 
-    int             subtitleIndex_ = -1;          // ×ÖÄ»Á÷Ë÷Òı
-    AVCodecContext* subtitleCodecCtx_ = nullptr; // ×ÖÄ»Á÷½âÂëÆ÷ÉÏÏÂÎÄ
-    AVStream* subtitleStream_ = nullptr;    // ×ÖÄ»Á÷
-    PacketQueue     subtitlePacketQueue_;        // ×ÖÄ»packet¶ÓÁĞ
-    FrameQueue      subtitleFrameQueue_{ &subtitlePacketQueue_ , SUBTITLE_FRAME_QUEUE_SIZE, 1 }; // ×ÖÄ»Ö¡¶ÓÁĞ
+    int             subtitleIndex_ = -1;          // ï¿½ï¿½Ä»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    AVCodecContext* subtitleCodecCtx_ = nullptr; // ï¿½ï¿½Ä»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    AVStream* subtitleStream_ = nullptr;    // ï¿½ï¿½Ä»ï¿½ï¿½
+    PacketQueue     subtitlePacketQueue_;        // ï¿½ï¿½Ä»packetï¿½ï¿½ï¿½ï¿½
+    FrameQueue      subtitleFrameQueue_{ &subtitlePacketQueue_ , SUBTITLE_FRAME_QUEUE_SIZE, 1 }; // ï¿½ï¿½Ä»Ö¡ï¿½ï¿½ï¿½ï¿½
 
     // TODO
-    // Clock           extern_clock{&extern_clock.m_serial, SYNC_TYPE_EXTERN};                 // Íâ²¿Ê±ÖÓ
+    // Clock           extern_clock{&extern_clock.m_serial, SYNC_TYPE_EXTERN};                 // ï¿½â²¿Ê±ï¿½ï¿½
 
-    double maxFrameDuration_ = 0.0; // Ò»Ö¡µÄ×î´ó¼ä¸ô
+    double maxFrameDuration_ = 0.0; // Ò»Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     std::mutex pauseMutex_;
     std::condition_variable pauseCond_;
-    std::atomic<bool> paused_ = false; // ÔİÍ£/»Ö¸´²¥·Å
-    std::atomic<bool> stop_ = false;   // Í£Ö¹²¥·Å
+    std::atomic<bool> paused_ = false; // ï¿½ï¿½Í£/ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½
+    std::atomic<bool> stop_ = false;   // Í£Ö¹ï¿½ï¿½ï¿½ï¿½
 
-    // seek²Ù×÷
-    std::atomic<bool> seekReq_ = false;    // seek²Ù×÷
+    // seekï¿½ï¿½ï¿½ï¿½
+    std::atomic<bool> seekReq_ = false;    // seekï¿½ï¿½ï¿½ï¿½
     int seekFlags_ = 0;
     int64_t seekPos_ = 0;
     int64_t seekRel_ = 0;
 
     int eof_ = 0;
-    // Ç¿ÖÆË¢ĞÂÊÓÆµ
+    // Ç¿ï¿½ï¿½Ë¢ï¿½ï¿½ï¿½ï¿½Æµ
     int forceRefresh_ = 0;
 
-    // ÒôÊÓÆµÍ¬²½
+    // ï¿½ï¿½ï¿½ï¿½ÆµÍ¬ï¿½ï¿½
     Clock* masterClock_ = &audioClock_;
 
-    double frameLastReturnedTime_ = 0.0; // ÓÃÓÚ¼ÇÂ¼ÉÏÒ»Ö¡ÔÚ½âÂëºó±»·µ»ØµÄÊ±¼ä´Á
-    double frameLastFilterDelay_ = 0.0;  // ÓÃÓÚ¼ÇÂ¼ÉÏÒ»Ö¡Í¨¹ıÂË¾µÁ´ºóµÄÑÓ³ÙÊ±¼ä
-    int frameDropsEarly_ = 0; // Í³¼Æ±»¶ªÆúµÄÊ±ÖÓÓĞÎó²îµÄ°ü£¬·ÅÈëframe¶ÓÁĞÖ®Ç°¶ªÆú
+    double frameLastReturnedTime_ = 0.0; // ï¿½ï¿½ï¿½Ú¼ï¿½Â¼ï¿½ï¿½Ò»Ö¡ï¿½Ú½ï¿½ï¿½ï¿½ó±»·ï¿½ï¿½Øµï¿½Ê±ï¿½ï¿½ï¿½
+    double frameLastFilterDelay_ = 0.0;  // ï¿½ï¿½ï¿½Ú¼ï¿½Â¼ï¿½ï¿½Ò»Ö¡Í¨ï¿½ï¿½ï¿½Ë¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó³ï¿½Ê±ï¿½ï¿½
+    int frameDropsEarly_ = 0; // Í³ï¿½Æ±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½frameï¿½ï¿½ï¿½ï¿½Ö®Ç°ï¿½ï¿½ï¿½ï¿½
     int frameDropsLate_ = 0;
 
 
@@ -102,4 +103,10 @@ private:
 
     std::mutex demuxMutex_;
     std::condition_variable demuxCond_;
+
+    // è‡ªå®šä¹‰å…ƒæ•°æ®(ä» MP4 metadata ä¸­çš„ "video_custom_data" JSON è§£æ)
+    bool hasCustomData_ = false;
+    std::string usrName_;
+    std::string usrCompany_;
+    std::string usrType_;
 };

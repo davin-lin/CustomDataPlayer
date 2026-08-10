@@ -1,6 +1,7 @@
 #include "player.h"
 #include "audio_decoder.h"
 #include "video_decoder.h"
+#include "../../CustomMetadata/custom_data.h"
 
 Player::Player()
 {
@@ -16,6 +17,14 @@ int Player::Open(const char* filename) {
     videoPlayer_ = std::make_shared<VideoPlayer>(ctx_);
 
     demuxer_->Open();
+
+    // 读取 MP4 全局 metadata 中的自定义 JSON 数据
+    CustomData data = ParseCustomDataFromJson(ctx_->fmtCtx_);
+    ctx_->hasCustomData_ = data.hasData;
+    ctx_->usrName_ = data.usrName;
+    ctx_->usrCompany_ = data.usrCompany;
+    ctx_->usrType_ = data.usrType;
+
     audioDecoder_->Open();
     videoDecoder_->Open();
     audioPlayer_->Open();
