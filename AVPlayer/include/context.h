@@ -37,6 +37,27 @@ public:
         this->filename_ = av_strdup(filename);
     }
     ~Context() {
+                // FFmpeg 资源（按依赖顺序释放）
+        if (audioSwrCtx_) {
+            swr_free(&audioSwrCtx_);
+        }
+        if (subtitleCodecCtx_) {
+            avcodec_free_context(&subtitleCodecCtx_);
+        }
+        if (videoCodecCtx_) {
+            avcodec_free_context(&videoCodecCtx_);
+        }
+        if (audioCodecCtx_) {
+            avcodec_free_context(&audioCodecCtx_);
+        }
+        if (fmtCtx_) {
+            avformat_close_input(&fmtCtx_);
+        }
+        if (filename_) {
+            av_free((void*)filename_);
+            filename_ = nullptr;
+        }
+        // PacketQueue / FrameQueue 有自己的析构函数，自动释放内部资源
         if (filename_) {
             av_free((void*)filename_);
         }

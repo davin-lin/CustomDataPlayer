@@ -29,7 +29,11 @@ int main(int argc, char** argv) {
 
 	const char* mediaPath = (argc > 1) ? argv[1] : DEFAULT_MEDIA_PATH;
 	Player player;
-	player.Open(mediaPath);
+    if (player.Open(mediaPath) < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Failed to open media file: %s, exiting\n", mediaPath);
+        player.Close();
+        return -1;
+    }
 	player.Start();
 
 	EventLoop loop;

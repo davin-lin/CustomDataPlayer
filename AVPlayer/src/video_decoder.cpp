@@ -37,10 +37,12 @@ void VideoDecoder::DecodeLoop() {
         if (ctx_->videoPacketQueue_.Serial() != pktSerial_) {
 			av_log(nullptr, AV_LOG_WARNING, "the serial in video packet queue and decoder is different, serial=%d, serial=%d\n", 
                 ctx_->videoPacketQueue_.Serial(), pktSerial_);
+            av_frame_unref(frame);
             continue;
         }
 
         if (!EnqueueFrame(frame)) {
+            av_frame_unref(frame);
             continue;
         }
 

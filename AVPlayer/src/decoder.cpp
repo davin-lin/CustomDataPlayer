@@ -121,9 +121,9 @@ int Decoder::Decode(AVCodecContext* codecCtx, AVFrame* frame) {
         if (avcodec_send_packet(codecCtx, pkt_) == AVERROR(EAGAIN)) {
             packetPending_ = 1;
         }
-        //else {
+        else {
             av_packet_unref(pkt_);
-        //}
+        }
 
     }
 }

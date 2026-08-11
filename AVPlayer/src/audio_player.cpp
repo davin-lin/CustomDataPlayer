@@ -60,6 +60,11 @@ int AudioPlayer::Close() {
     Stop();
     SDL_CloseAudioDevice(audioDevId_);
     audioDevId_ = -1;
+
+    if (currentAudioBufData_) {
+        av_freep(&currentAudioBufData_);
+        currentAudioBufSize_ = 0;
+    }
     return 0;
 }
 

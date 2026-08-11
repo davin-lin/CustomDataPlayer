@@ -125,6 +125,25 @@ int VideoPlayer::Start() {
 }
 
 int VideoPlayer::Close() {
+    if (swsCtx_) {
+        sws_freeContext(swsCtx_);
+        swsCtx_ = nullptr;
+    }
+    if (data_[0]) {
+        av_freep(&data_[0]);
+    }
+    if (texture_) {
+        SDL_DestroyTexture(texture_);
+        texture_ = nullptr;
+    }
+    if (renderer_) {
+        SDL_DestroyRenderer(renderer_);
+        renderer_ = nullptr;
+    }
+    if (window_) {
+        SDL_DestroyWindow(window_);
+        window_ = nullptr;
+    }
     ttfRenderer_.Destroy();
     return 0;
 }

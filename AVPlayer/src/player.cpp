@@ -16,7 +16,10 @@ int Player::Open(const char* filename) {
     audioPlayer_ = std::make_shared<AudioPlayer>(ctx_);
     videoPlayer_ = std::make_shared<VideoPlayer>(ctx_);
 
-    demuxer_->Open();
+    if (demuxer_->Open() < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "demuxer open failed: %s\n", filename);
+        return -1;
+    }
 
     // 读取 MP4 全局 metadata 中的自定义数据(格式由 CUSTOM_DATA_FORMAT 宏控制)
     CustomData data = ParseCustomData(ctx_->fmtCtx_);
@@ -25,10 +28,23 @@ int Player::Open(const char* filename) {
     ctx_->usrCompany_ = data.usrCompany;
     ctx_->usrType_ = data.usrType;
 
-    audioDecoder_->Open();
-    videoDecoder_->Open();
-    audioPlayer_->Open();
-    videoPlayer_->Open();
+    if (audioDecoder_->Open() < 0) {
+        av_log(nullptr, AV_LOG_WARNING, "audio decoder open failed, continuing without audio\n");
+    }
+
+    if (videoDecoder_->Open() < 0) {
+        av_log(nullptr, AV_LOG_WARNING, "video decoder open failed, continuing without video\n");
+    }
+
+    if (audioPlayer_->Open() < 0) {
+        av_log(nullptr, AV_LOG_WARNING, "audio player open failed\n");
+    }
+
+    if (videoPlayer_->Open() < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "video player open failed\n");
+        Close();
+        return -1;
+    }
 
     return 0;
 }
@@ -42,15 +58,11 @@ void Player::Start() {
 }
 
 void Player::Close() {
-    //m_video_player->close();
-
-    audioPlayer_->Close();
-
-    audioDecoder_->Close();
-
-    videoDecoder_->Close();
-
-    demuxer_->Close();
+	if (videoPlayer_) videoPlayer_->Close();
+    if (audioPlayer_) audioPlayer_->Close();
+    if (audioDecoder_) audioDecoder_->Close();
+    if (videoDecoder_) videoDecoder_->Close();
+    if (demuxer_) demuxer_->Close();
 
     SDL_Quit();
     av_log(nullptr, AV_LOG_INFO, "player closed\n");

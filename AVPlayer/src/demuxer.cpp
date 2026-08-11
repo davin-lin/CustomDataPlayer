@@ -7,10 +7,7 @@ Demuxer::Demuxer(std::shared_ptr<Context> ctx)
 }
 
 Demuxer::~Demuxer() {
-    if (ctx_->fmtCtx_) {
-        avformat_free_context(ctx_->fmtCtx_);
-        ctx_->fmtCtx_ = nullptr;
-    }
+
 }
 
 int Demuxer::Open() {
@@ -30,11 +27,6 @@ int Demuxer::Open() {
 }
 
 int Demuxer::Close() {
-    if (ctx_->fmtCtx_) {
-        //avformat_free_context(m_ctx->fmt_ctx);
-		avformat_close_input(&ctx_->fmtCtx_);
-        ctx_->fmtCtx_ = nullptr;
-    }
     return 0;
 }
 

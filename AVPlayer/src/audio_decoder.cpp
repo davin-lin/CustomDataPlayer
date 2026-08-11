@@ -15,14 +15,6 @@ int AudioDecoder::ComponentOpen(int streamIndex, AVCodecContext* codecCtx) {
     return 0;
 }
 
-int AudioDecoder::ComponentClose() {
-    if (ctx_->audioCodecCtx_) {
-        avcodec_free_context(&ctx_->audioCodecCtx_);
-        ctx_->audioCodecCtx_ = nullptr;
-    }
-    return 0;
-}
-
 void AudioDecoder::Run() {
     DecodeLoop();
 }
