@@ -23,14 +23,14 @@ void AudioDecoder::DecodeLoop() {
     int gotFrame = 0;
     AVFrame* frame = av_frame_alloc();
     if (!frame) {
-		av_log(nullptr, AV_LOG_ERROR, "av_frame_alloc failed\n");
+                av_log(nullptr, AV_LOG_ERROR, "av_frame_alloc failed\n");
         return;
     }
     while (!stop_) {
         gotFrame = Decode(ctx_->audioCodecCtx_, frame);
 
         if (gotFrame < 0) {
-            continue;
+            break;
         }
         if (ctx_->audioPacketQueue_.Serial() != pktSerial_) {
             continue;
