@@ -18,6 +18,10 @@ Decoder::~Decoder() {
 int Decoder::Open() {
     const AVCodec* codec = nullptr;
     AVFormatContext* fmtCtx = ctx_->fmtCtx_;
+    if (!fmtCtx) {
+        av_log(nullptr, AV_LOG_ERROR, "fmtCtx is null, cannot open decoder\n");
+        return -1;
+    }
     int streamIndex = av_find_best_stream(fmtCtx, mediaType_, -1, -1, &codec, 0);
     if (streamIndex < 0 || streamIndex >= (int)fmtCtx->nb_streams) {
 		av_log(nullptr, AV_LOG_ERROR, "av_find_best_stream failed, stream_index=%d\n", streamIndex);
@@ -53,6 +57,11 @@ int Decoder::Close() {
 
 int Decoder::Decode(AVCodecContext* codecCtx, AVFrame* frame) {
     int ret = AVERROR(EAGAIN);
+
+    if (!queue_) {
+        av_log(nullptr, AV_LOG_ERROR, "decoder queue is null, cannot decode\n");
+        return -1;
+    }
 
     for (;;) {
         if (queue_->Serial() == pktSerial_) {

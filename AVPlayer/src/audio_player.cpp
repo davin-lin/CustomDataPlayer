@@ -25,6 +25,10 @@ AudioPlayer::AudioPlayer(std::shared_ptr<Context> ctx)
 }
 
 int AudioPlayer::Open() {
+    if (!ctx_->audioCodecCtx_) {
+        av_log(nullptr, AV_LOG_WARNING, "audioCodecCtx is null, cannot open audio player\n");
+        return -1;
+    }
     SDL_AudioSpec desired, obtained;
     desired.channels = ctx_->audioCodecCtx_->ch_layout.nb_channels;
     desired.freq = ctx_->audioCodecCtx_->sample_rate;

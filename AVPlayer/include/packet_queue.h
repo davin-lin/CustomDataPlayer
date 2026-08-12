@@ -22,6 +22,13 @@ class PacketQueue {
     };
     friend class Context;
 public:
+    PacketQueue() = default;
+    ~PacketQueue() {
+        Flush();
+    }
+    PacketQueue(const PacketQueue&) = delete;
+    PacketQueue& operator=(const PacketQueue&) = delete;
+
     int Put(AVPacket* pkt);
 	int PutFlushPacket(int streamIndex);
     int Get(AVPacket* pkt, int block, int& serial);
