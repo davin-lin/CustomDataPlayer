@@ -292,21 +292,106 @@ void VideoPlayer::Render() {
         vp->frame_->width <= 0 ||
         vp->frame_->height <= 0 ||
         !vp->frame_->data[0]) {
-		av_log(nullptr, AV_LOG_ERROR, "invalid frame pts=%f serial=%d\n", vp ? vp->pts_ : -1, vp ? vp->serial_ : -1);
+        av_log(nullptr, AV_LOG_ERROR, "invalid frame pts=%f serial=%d\n", vp ? vp->pts_ : -1, vp ? vp->serial_ : -1);
         return;
     }
 
     int src_w = vp->frame_->width;
     int src_h = vp->frame_->height;
+    int fit_w, fit_h, offset_x, offset_y;
+    CalcDisplayRect(src_w, src_h, fit_w, fit_h, offset_x, offset_y);
+
+    Uint32 sdl_pix_fmt = SDL_PIXELFORMAT_UNKNOWN;
+    SDL_BlendMode sdl_blendmode = SDL_BLENDMODE_NONE;
+    GetSdlPixFmtAndBlendmode(vp->frame_->format, sdl_pix_fmt, sdl_blendmode);
+
+    if (sdl_pix_fmt != SDL_PIXELFORMAT_UNKNOWN) {
+        RenderGpuPath(vp, sdl_pix_fmt, sdl_blendmode, src_w, src_h, fit_w, fit_h, offset_x, offset_y);
+    } else {
+        RenderCpuPath(vp, sdl_pix_fmt, sdl_blendmode, src_w, src_h, fit_w, fit_h, offset_x, offset_y);
+    }
+}
+
+void VideoPlayer::CalcDisplayRect(int src_w, int src_h, int& fit_w, int& fit_h, int& offset_x, int& offset_y) {
     double scale_x = (double)dstWidth_ / src_w;
     double scale_y = (double)dstHeight_ / src_h;
     double scale = FFMIN(scale_x, scale_y);
-    int fit_w = (int)(src_w * scale);
-    int fit_h = (int)(src_h * scale);
-    int offset_x = (dstWidth_ - fit_w) / 2;
-    int offset_y = (dstHeight_ - fit_h) / 2;
+    fit_w = (int)(src_w * scale);
+    fit_h = (int)(src_h * scale);
+    offset_x = (dstWidth_ - fit_w) / 2;
+    offset_y = (dstHeight_ - fit_h) / 2;
+}
 
-    if (vp->uploaded_) {
+void VideoPlayer::UploadTexture(Uint32 sdl_pix_fmt, uint8_t* const* data, const int* linesize, int height) {
+    switch (sdl_pix_fmt) {
+    case SDL_PIXELFORMAT_IYUV:
+        if (linesize[0] > 0 && linesize[1] > 0 && linesize[2] > 0) {
+            SDL_UpdateYUVTexture(texture_, nullptr,
+                data[0], linesize[0],
+                data[1], linesize[1],
+                data[2], linesize[2]);
+        }
+        else if (linesize[0] < 0 && linesize[1] < 0 && linesize[2] < 0) {
+            SDL_UpdateYUVTexture(texture_, nullptr,
+                data[0] + linesize[0] * (height - 1), -linesize[0],
+                data[1] + linesize[1] * (AV_CEIL_RSHIFT(height, 1) - 1), -linesize[1],
+                data[2] + linesize[2] * (AV_CEIL_RSHIFT(height, 1) - 1), -linesize[2]);
+        }
+        else {
+            av_log(nullptr, AV_LOG_ERROR, "Mixed negative and positive linesizes are not supported\n");
+        }
+        break;
+    default:
+        if (linesize[0] < 0) {
+            SDL_UpdateTexture(texture_, nullptr,
+                data[0] + linesize[0] * (height - 1), -linesize[0]);
+        }
+        else {
+            SDL_UpdateTexture(texture_, nullptr, data[0], linesize[0]);
+        }
+        break;
+    }
+}
+
+void VideoPlayer::RenderGpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
+                                int src_w, int src_h, int fit_w, int fit_h, int offset_x, int offset_y) {
+    // 纹理已上传且尺寸未变：直接 RenderCopy，跳过纹理重建
+    if (vp->uploaded_ && lastPathWasGpu_ && src_w == width_ && src_h == height_) {
+        offsetX_ = offset_x;
+        offsetY_ = offset_y;
+        SDL_Rect rect = { offset_x, offset_y, fit_w, fit_h };
+        SDL_RenderCopy(renderer_, texture_, nullptr, &rect);
+        return;
+    }
+    vp->uploaded_ = 0;
+
+    // 切换到 GPU 路径：释放 CPU 路径的 swscale 资源
+    if (swsCtx_) {
+        sws_freeContext(swsCtx_);
+        swsCtx_ = nullptr;
+    }
+    if (data_[0] != nullptr) {
+        av_freep(&data_[0]);
+    }
+
+    // 纹理创建在源帧分辨率，由 SDL_RenderCopy 在 GPU 端完成缩放
+    CreateTexture(sdl_pix_fmt, src_w, src_h, sdl_blendmode);
+    UploadTexture(sdl_pix_fmt, vp->frame_->data, vp->frame_->linesize, src_h);
+
+    vp->uploaded_ = 1;
+    width_ = src_w;
+    height_ = src_h;
+    offsetX_ = offset_x;
+    offsetY_ = offset_y;
+    SDL_Rect rect = { offset_x, offset_y, fit_w, fit_h };
+    SDL_RenderCopy(renderer_, texture_, nullptr, &rect);
+    lastPathWasGpu_ = true;
+}
+
+void VideoPlayer::RenderCpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
+                                int src_w, int src_h, int fit_w, int fit_h, int offset_x, int offset_y) {
+    // 纹理已上传且尺寸未变：直接 RenderCopy
+    if (vp->uploaded_ && !lastPathWasGpu_) {
         if (fit_w == width_ && fit_h == height_) {
             offsetX_ = offset_x;
             offsetY_ = offset_y;
@@ -317,19 +402,17 @@ void VideoPlayer::Render() {
         vp->uploaded_ = 0;
     }
 
-    int size = av_image_get_buffer_size(static_cast<AVPixelFormat>(vp->frame_->format), vp->frame_->width, vp->frame_->height, 1);
-
-
+    // 尺寸变化时重建 swscale 上下文和中间缓冲区
     if (!swsCtx_ || fit_w != width_ || fit_h != height_) {
         if (swsCtx_) {
             sws_freeContext(swsCtx_);
             swsCtx_ = nullptr;
         }
-        swsCtx_ = sws_getContext(vp->frame_->width, vp->frame_->height, static_cast<AVPixelFormat>(vp->frame_->format),
+        swsCtx_ = sws_getContext(src_w, src_h, static_cast<AVPixelFormat>(vp->frame_->format),
             fit_w, fit_h, static_cast<AVPixelFormat>(vp->frame_->format),
             SWS_BILINEAR, NULL, NULL, NULL);
         if (!swsCtx_) {
-			av_log(nullptr, AV_LOG_ERROR, "sws_getContext failed\n");
+            av_log(nullptr, AV_LOG_ERROR, "sws_getContext failed\n");
             return;
         }
 
@@ -339,59 +422,27 @@ void VideoPlayer::Render() {
         dataSize_ = av_image_alloc(data_, lineSize_,
             fit_w, fit_h, static_cast<AVPixelFormat>(vp->frame_->format), 1);
         if (dataSize_ < 0) {
-			av_log(nullptr, AV_LOG_ERROR, "av_image_alloc failed\n");
+            av_log(nullptr, AV_LOG_ERROR, "av_image_alloc failed\n");
             return;
         }
         width_ = fit_w;
         height_ = fit_h;
     }
 
+    // CPU 缩放
     sws_scale(swsCtx_, (const uint8_t* const*)vp->frame_->data, vp->frame_->linesize, 0,
         vp->frame_->height, data_, lineSize_);
 
-    int ret = 0;
-    Uint32 sdl_pix_fmt = SDL_PIXELFORMAT_UNKNOWN;
-    SDL_BlendMode sdl_blendmode = SDL_BLENDMODE_NONE;
-    GetSdlPixFmtAndBlendmode(vp->frame_->format, sdl_pix_fmt, sdl_blendmode);
+    // 上传缩放后的数据并渲染
     CreateTexture(sdl_pix_fmt, width_, height_, sdl_blendmode);
-    switch (sdl_pix_fmt) {
-    case SDL_PIXELFORMAT_IYUV:
-        if (lineSize_[0] > 0 &&
-            lineSize_[1] > 0 &&
-            lineSize_[2] > 0) {
-            ret = SDL_UpdateYUVTexture(texture_, nullptr,
-                data_[0], lineSize_[0],
-                data_[1], lineSize_[1],
-                data_[2], lineSize_[2]);
+    UploadTexture(sdl_pix_fmt, data_, lineSize_, height_);
 
-        }
-        else if (lineSize_[0] < 0 &&
-            lineSize_[1] < 0 &&
-            lineSize_[2] < 0) {
-            ret = SDL_UpdateYUVTexture(texture_, nullptr,
-                data_[0] + lineSize_[0] * (height_ - 1), -lineSize_[0],
-                data_[1] + lineSize_[1] * (AV_CEIL_RSHIFT(height_, 1) - 1), -lineSize_[1],
-                data_[2] + lineSize_[2] * (AV_CEIL_RSHIFT(height_, 1) - 1), -lineSize_[2]);
-        }
-        else {
-			av_log(nullptr, AV_LOG_ERROR, "Mixed negative and positive linesizes are not supported\n");
-        }
-        break;
-    default:
-        if (lineSize_[0] < 0) {
-            ret = SDL_UpdateTexture(texture_, nullptr,
-                data_[0] + lineSize_[0] * (height_ - 1), -lineSize_[0]);
-        }
-        else {
-            ret = SDL_UpdateTexture(texture_, nullptr, data_[0], lineSize_[0]);
-        }
-        break;
-    }
     vp->uploaded_ = 1;
     offsetX_ = offset_x;
     offsetY_ = offset_y;
     SDL_Rect rect = { offset_x, offset_y, width_, height_ };
-    ret = SDL_RenderCopy(renderer_, texture_, nullptr, &rect);
+    SDL_RenderCopy(renderer_, texture_, nullptr, &rect);
+    lastPathWasGpu_ = false;
 }
 
 void VideoPlayer::CreateTexture(Uint32 format, int width, int height, SDL_BlendMode blendmode) {

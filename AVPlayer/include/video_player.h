@@ -33,6 +33,13 @@ private:
     void RenderLastTexture(Frame* vp);
     void CreateTexture(Uint32 format, int width, int height, SDL_BlendMode blendmode);
 
+    void CalcDisplayRect(int src_w, int src_h, int& fit_w, int& fit_h, int& offset_x, int& offset_y);
+    void UploadTexture(Uint32 sdl_pix_fmt, uint8_t* const* data, const int* linesize, int height);
+    void RenderGpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
+                       int src_w, int src_h, int fit_w, int fit_h, int offset_x, int offset_y);
+    void RenderCpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
+                       int src_w, int src_h, int fit_w, int fit_h, int offset_x, int offset_y);
+
     double ComputeTargetDelay(double delay);
     void UpdateVideoPts(double pts, int serial);
 private:
@@ -55,6 +62,7 @@ private:
     int offsetX_ = 0;
     int offsetY_ = 0;
     bool isFullScreen_ = false;
+    bool lastPathWasGpu_ = false;   // 上一帧走的渲染路径：true=GPU直接上传，false=CPU swscale。切换路径时强制重新上传纹理，避免 width_/height_ 语义不一致
 
     TTFRenderer ttfRenderer_;
 };
