@@ -42,7 +42,9 @@ int Decoder::Open() {
 }
 
 int Decoder::Close() {
-    queue_->AbortRequest();
+    if (queue_) {
+        queue_->AbortRequest();
+    }
     ctx_->audioFrameQueue_.Wakeup();
     ctx_->videoFrameQueue_.Wakeup();
     Stop();
