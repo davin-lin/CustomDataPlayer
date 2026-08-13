@@ -16,19 +16,33 @@ Decoder::~Decoder() {
 }
 
 int Decoder::Open() {
-    const AVCodec* codec = nullptr;
     AVFormatContext* fmtCtx = ctx_->fmtCtx_;
     if (!fmtCtx) {
         av_log(nullptr, AV_LOG_ERROR, "fmtCtx is null, cannot open decoder\n");
         return -1;
     }
-    int streamIndex = av_find_best_stream(fmtCtx, mediaType_, -1, -1, &codec, 0);
-    if (streamIndex < 0 || streamIndex >= (int)fmtCtx->nb_streams) {
-		av_log(nullptr, AV_LOG_ERROR, "av_find_best_stream failed, stream_index=%d\n", streamIndex);
+
+    int streamIndex = -1;
+    for (unsigned int i = 0; i < fmtCtx->nb_streams; ++i) {
+        if (fmtCtx->streams[i]->codecpar->codec_type == mediaType_) {
+            streamIndex = i;
+            break;
+        }
+    }
+    if (streamIndex < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "no stream found for mediaType=%d\n", mediaType_);
         return -1;
     }
+
+    AVCodecParameters* codecpar = fmtCtx->streams[streamIndex]->codecpar;
+    const AVCodec* codec = avcodec_find_decoder(codecpar->codec_id);
+    if (!codec) {
+        av_log(nullptr, AV_LOG_ERROR, "FindCodec failed, codec_id=%d\n", codecpar->codec_id);
+        return -1;
+    }
+
     AVCodecContext* codecCtx = avcodec_alloc_context3(codec);
-    avcodec_parameters_to_context(codecCtx, fmtCtx->streams[streamIndex]->codecpar);
+    avcodec_parameters_to_context(codecCtx, codecpar);
 
     // 视频解码启用多线程（帧级并行），音频不启用（收益太小）
     if (mediaType_ == AVMEDIA_TYPE_VIDEO) {
@@ -39,7 +53,7 @@ int Decoder::Open() {
 
     int ret = avcodec_open2(codecCtx, codec, nullptr);
     if (ret < 0) {
-		av_log(nullptr, AV_LOG_ERROR, "avcodec_open2 failed, ret=%d\n", ret);
+        av_log(nullptr, AV_LOG_ERROR, "avcodec_open2 failed, ret=%d\n", ret);
         return -1;
     }
     return ComponentOpen(streamIndex, codecCtx);

@@ -18,7 +18,7 @@ public:
     void Start();
     void Close();
 
-    void Refresh();
+    double Refresh();
 
     void TogglePause();
     void ToggleMute();

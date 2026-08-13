@@ -160,11 +160,6 @@ void Demuxer::DemuxLoop() {
                 av_read_play(ctx_->fmtCtx_);
             }
         }
-        if (ctx_->paused_) {
-            std::unique_lock<std::mutex> lock(ctx_->pauseMutex_);
-            ctx_->pauseCond_.wait_for(lock, std::chrono::milliseconds(40));
-            continue;
-        }
 
         // TODO queue_attachments_req
 
@@ -178,8 +173,6 @@ void Demuxer::DemuxLoop() {
             ctx_->demuxCond_.wait_for(lock, std::chrono::milliseconds(10));
             continue;
         }
-
-        // TODO !paused and play down
 
         ret = av_read_frame(ctx_->fmtCtx_, pkt);
         if (ret < 0) {
@@ -196,14 +189,6 @@ void Demuxer::DemuxLoop() {
                 ctx_->eof_ = 1;
 
             }
-            // TODO eof
-            // if (ic->pb && ic->pb->error)
-            // {
-            //     if (autoexit)
-            //         goto fail;
-            //     else
-            //         break;
-            // }
 
             std::unique_lock<std::mutex> lock{ ctx_->demuxMutex_ };
             ctx_->demuxCond_.wait_for(lock, std::chrono::milliseconds(10));
@@ -212,7 +197,7 @@ void Demuxer::DemuxLoop() {
         else {
             ctx_->eof_ = 0;
         }
-        // TODO pkt_in_play_range
+
         if (pkt->stream_index == ctx_->audioIndex_) {
             ctx_->audioPacketQueue_.Put(pkt);
         }

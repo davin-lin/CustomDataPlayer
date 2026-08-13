@@ -20,7 +20,7 @@ private:
     int serial_ = 0;            // 时钟依赖packet队列的序列号
     int paused_ = 0;            // 播放/暂停操作
     double pts_ = 0.0;          // 时钟基准
-    double ptsDrift_ = 0.0;    // 时钟基准减去我们更新时钟的时间
+    double ptsDrift_ = 0.0;    // 时钟基准 - 更新时钟的时间 pts_ - lastUpdated_
     double speed_ = 1.0;        // 倍速播放
     double lastUpdated_ = 0.0; // 上次时钟更新的时间
     int* pktSerial_ = nullptr; // packet队列中的序列号

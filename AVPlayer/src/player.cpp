@@ -98,8 +98,8 @@ bool Player::IsMuted() const {
     return audioPlayer_->IsMuted();
 }
 
-void Player::Refresh() {
-    videoPlayer_->Run(0);
+double Player::Refresh() {
+    return videoPlayer_->Refresh();
 }
 
 void Player::VolumeUp(int volume) {

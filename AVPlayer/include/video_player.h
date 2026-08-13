@@ -14,7 +14,6 @@ extern "C" {
 #define SDL_WINDOW_DEFAULT_HEIGHT (720)
 
 class VideoPlayer {
-    friend Uint32 callback(Uint32 interval, void* param);
 public:
     VideoPlayer(std::shared_ptr<Context> ctx);
     int Open();
@@ -25,9 +24,9 @@ public:
     void ToggleFullScreen();
 
     int Run(int interval);
-private:
-
     double Refresh();
+
+private:
     void Display();
     void Render();
     void RenderLastTexture(Frame* vp);

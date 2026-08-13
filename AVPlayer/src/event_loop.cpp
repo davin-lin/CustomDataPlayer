@@ -7,9 +7,16 @@ EventLoop::EventLoop() {
 
 int EventLoop::Run(Player& player) {
     SDL_Event event;
+    double remainingTime = 0.0;
     for (;;) {
-        int timeout = SDL_WaitEventTimeout(&event, 20);
-        player.Refresh();
+        SDL_PumpEvents();
+        while (!SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT)) {
+            if (remainingTime > 0.0) {
+                SDL_Delay((Uint32)(remainingTime * 1000.0));
+            }
+            remainingTime = player.Refresh();
+            SDL_PumpEvents();
+        }
         switch (event.type) {
         case SDL_QUIT: {
             player.Close();

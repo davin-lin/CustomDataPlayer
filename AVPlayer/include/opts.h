@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 //static AVDictionary* format_opts = nullptr;
-static int g_framedrop = 0;
+static int g_framedrop = -1;
 
 // frame队列参数
 #define VIDEO_FRAME_QUEUE_SIZE 3

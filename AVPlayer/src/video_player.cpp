@@ -61,14 +61,6 @@ static void GetSdlPixFmtAndBlendmode(int format, Uint32& sdlPixFmt, SDL_BlendMod
     return;
 }
 
-static Uint32 callback(Uint32 internal, void* param) {
-    if (!param) {
-        return 0;
-    }
-    VideoPlayer* player = static_cast<VideoPlayer*>(param);
-    return player->Run(internal);
-}
-
 VideoPlayer::VideoPlayer(std::shared_ptr<Context> ctx)
     : ctx_(ctx) {
 
@@ -170,7 +162,7 @@ int VideoPlayer::Run(int internal) {
 }
 
 double VideoPlayer::Refresh() {
-    double remainingTime = 0.0;
+    double remainingTime = 0.01;
     if (ctx_->videoStream_) {
     retry:
         if (ctx_->videoFrameQueue_.Nb_Remaining() > 0) {
@@ -482,7 +474,6 @@ void VideoPlayer::CreateTexture(Uint32 format, int width, int height, SDL_BlendM
 }
 
 double VideoPlayer::ComputeTargetDelay(double delay) {
-    double delay0 = delay;
     if (ctx_->masterClock_->SyncType() != SYNC_TYPE_VIDEO) {
         
         double diff = ctx_->videoClock_.Get() - ctx_->masterClock_->Get();
@@ -500,7 +491,7 @@ double VideoPlayer::ComputeTargetDelay(double delay) {
                 delay = 2 * delay; 
             }
         }
-    };
+    }
     return delay;
 }
 
