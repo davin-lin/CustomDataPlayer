@@ -1,6 +1,11 @@
-# CustomData
+# CustomDataAVPlayer
 
 基于 SDL + FFmpeg 的视频播放器，支持从 MP4 metadata 中读取自定义数据（JSON 或 Protobuf）并以文字叠加层的形式显示在视频画面上。
+
+## 相关文档
+
+- [API 文档](API.md)：各模块（Player、Demuxer、Decoder、VideoPlayer、AudioPlayer、TTFRenderer、EventLoop、Context）的对外接口与调用时序说明
+- [设计文档](Design.md)：播放器整体架构、类图、模块关系与数据流设计
 
 ## 编译
 
@@ -8,7 +13,7 @@
 2. 选择 `Debug | x64` 配置
 3. F5 编译运行
 
-> 第三方依赖（SDL、SDL_ttf、FFmpeg、Protobuf、nlohmann/json）已包含在项目目录中，无需额外安装。
+> 第三方依赖（SDL、SDL\_ttf、FFmpeg、Protobuf、nlohmann/json）已包含在项目目录中，无需额外安装。
 
 ## 切换数据格式
 
@@ -26,8 +31,10 @@
 两种格式存储的字段一致：`usr_name`、`usr_company`、`usr_type`。
 
 ### JSON 格式
+
 - metadata key：`video_custom_data`
 - 存储内容：JSON 字符串
+
 ```json
 {
     "usr_name": "linmingyang",
@@ -37,8 +44,10 @@
 ```
 
 ### Protobuf 格式
+
 - metadata key：`video_custom_pb_data`
 - 定义见 `CustomMetadata/usr.proto`
+
 ```proto
 message Usr {
     string name    = 1;
@@ -49,7 +58,7 @@ message Usr {
 
 ## 字体
 
-文字叠加层使用 SDL_ttf 渲染，字体加载优先级：
+文字叠加层使用 SDL\_ttf 渲染，字体加载优先级：
 
 1. `assets/fonts/simhei.ttf`（项目内打包，推荐）
 2. 项目根目录 `simhei.ttf`
@@ -96,3 +105,4 @@ CustomData/
 ├── protobuf/                     # Protobuf 库
 └── SDL2.dll / SDL2_ttf.dll       # 运行时动态库
 ```
+

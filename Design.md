@@ -977,15 +977,6 @@ sequenceDiagram
     TTF->>TTF: TTF_Quit
 ```
 
-
-### 性能数据对比
-
-| 场景 | 每帧开销 | 说明 |
-|---|---|---|
-| 无缓存(理论) | `TTF_RenderUTF8_Blended` × 3 行 + `CreateTextureFromSurface` | ~ms 级,60fps 下占用显著 |
-| 有缓存(首次) | 同上 | 仅 Open 后第一帧 |
-| 有缓存(稳态) | `SDL_RenderCopy` × 1 | ~μs 级,可忽略 |
-
 ### 叠加层视觉规格
 
 | 属性 | 值 |
