@@ -133,6 +133,7 @@
     <ClCompile Include="AVPlayer\src\clock.cpp" />
     <ClCompile Include="AVPlayer\src\decoder.cpp" />
     <ClCompile Include="AVPlayer\src\demuxer.cpp" />
+    <ClCompile Include="AVPlayer\src\data_player.cpp" />
     <ClCompile Include="AVPlayer\src\event_loop.cpp" />
     <ClCompile Include="AVPlayer\src\frame.cpp" />
     <ClCompile Include="AVPlayer\src\frame_queue.cpp" />
@@ -157,6 +158,7 @@
     <ClInclude Include="AVPlayer\include\context.h" />
     <ClInclude Include="AVPlayer\include\decoder.h" />
     <ClInclude Include="AVPlayer\include\demuxer.h" />
+    <ClInclude Include="AVPlayer\include\data_player.h" />
     <ClInclude Include="AVPlayer\include\event_loop.h" />
     <ClInclude Include="AVPlayer\include\frame.h" />
     <ClInclude Include="AVPlayer\include\frame_queue.h" />

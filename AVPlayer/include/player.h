@@ -7,6 +7,7 @@
 #include "decoder.h"
 #include "video_player.h"
 #include "audio_player.h"
+#include "data_player.h"
 
 #define SEEK_BY_BYTES 1
 
@@ -41,4 +42,5 @@ private:
     std::shared_ptr<Decoder> subtitleDecoder_;
     std::shared_ptr<AudioPlayer> audioPlayer_;
     std::shared_ptr<VideoPlayer> videoPlayer_;
+    std::shared_ptr<DataPlayer> dataPlayer_;
 };

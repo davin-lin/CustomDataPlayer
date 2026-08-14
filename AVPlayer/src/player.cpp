@@ -15,6 +15,7 @@ int Player::Open(const char* filename) {
     videoDecoder_ = std::make_shared<VideoDecoder>(ctx_);
     audioPlayer_ = std::make_shared<AudioPlayer>(ctx_);
     videoPlayer_ = std::make_shared<VideoPlayer>(ctx_);
+    dataPlayer_ = std::make_shared<DataPlayer>(ctx_);
 
     if (demuxer_->Open() < 0) {
         av_log(nullptr, AV_LOG_ERROR, "demuxer open failed: %s\n", filename);
@@ -46,6 +47,11 @@ int Player::Open(const char* filename) {
         return -1;
     }
 
+    // DATA 流为可选,无 DATA 流时 Open 返回 -1(仅 info 日志),不影响播放
+    if (dataPlayer_->Open() < 0) {
+        av_log(nullptr, AV_LOG_INFO, "data player open skipped (no DATA stream)\n");
+    }
+
     return 0;
 }
 
@@ -54,12 +60,14 @@ void Player::Start() {
     audioDecoder_->Start();
     videoDecoder_->Start();
     audioPlayer_->Start();
+    dataPlayer_->Start();
     // m_video_player->start();
 }
 
 void Player::Close() {
 	if (videoPlayer_) videoPlayer_->Close();
     if (audioPlayer_) audioPlayer_->Close();
+    if (dataPlayer_) dataPlayer_->Close();
     if (audioDecoder_) audioDecoder_->Close();
     if (videoDecoder_) videoDecoder_->Close();
     if (demuxer_) demuxer_->Close();

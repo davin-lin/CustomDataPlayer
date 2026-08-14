@@ -137,6 +137,9 @@ void Demuxer::DemuxLoop() {
                 if (ctx_->subtitleIndex_ >= 0) {
                     ctx_->subtitlePacketQueue_.Flush();
                 }
+                if (ctx_->dataIndex_ >= 0) {
+                    ctx_->dataPacketQueue_.Flush();
+                }
                 // TODO
                 // if (m_ctx->seek_flags & AVSEEK_FLAG_BYTE) {
                 //     m_ctx->extern_clock.set(NAN, 0);
@@ -165,10 +168,12 @@ void Demuxer::DemuxLoop() {
 
         if (ctx_->audioPacketQueue_.Size() +
             ctx_->videoPacketQueue_.Size() +
-            ctx_->subtitlePacketQueue_.Size() > MAX_QUEUE_SIZE ||
+            ctx_->subtitlePacketQueue_.Size() +
+            ctx_->dataPacketQueue_.Size() > MAX_QUEUE_SIZE ||
             ctx_->audioPacketQueue_.Count() > MIN_FRAMES ||
             ctx_->videoPacketQueue_.Count() > MIN_FRAMES ||
-            ctx_->subtitlePacketQueue_.Count() > MIN_FRAMES) {
+            ctx_->subtitlePacketQueue_.Count() > MIN_FRAMES ||
+            ctx_->dataPacketQueue_.Count() > MIN_FRAMES) {
             std::unique_lock<std::mutex> lock(ctx_->demuxMutex_);
             ctx_->demuxCond_.wait_for(lock, std::chrono::milliseconds(10));
             continue;
@@ -185,6 +190,9 @@ void Demuxer::DemuxLoop() {
                 }
                 if (ctx_->subtitleIndex_ >= 0) {
 					ctx_->subtitlePacketQueue_.PutFlushPacket(ctx_->subtitleIndex_);
+                }
+                if (ctx_->dataIndex_ >= 0) {
+                    ctx_->dataPacketQueue_.PutFlushPacket(ctx_->dataIndex_);
                 }
                 ctx_->eof_ = 1;
 
@@ -206,6 +214,9 @@ void Demuxer::DemuxLoop() {
         }
         else if (pkt->stream_index == ctx_->subtitleIndex_) {
             ctx_->subtitlePacketQueue_.Put(pkt);
+        }
+        else if (pkt->stream_index == ctx_->dataIndex_) {
+            ctx_->dataPacketQueue_.Put(pkt);
         }
         else {
             av_packet_unref(pkt);

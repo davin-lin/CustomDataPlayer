@@ -32,6 +32,7 @@ class Context {
     friend class VideoDecoder;
     friend class AudioPlayer;
     friend class VideoPlayer;
+    friend class DataPlayer;
 public:
     Context(const char* filename) {
         this->filename_ = av_strdup(filename);
@@ -90,6 +91,11 @@ private:
     AVStream* subtitleStream_ = nullptr;    // 字幕流
     PacketQueue     subtitlePacketQueue_;        // 字幕包队列
     FrameQueue      subtitleFrameQueue_{ &subtitlePacketQueue_ , SUBTITLE_FRAME_QUEUE_SIZE, 1 }; // 字幕帧队列
+
+    // 自定义 DATA 流(每个视频帧对应一条 JSON，存于 packet->data，无需解码器)
+    int             dataIndex_ = -1;          // DATA 流索引
+    AVStream*       dataStream_ = nullptr;    // DATA 流
+    PacketQueue     dataPacketQueue_;         // DATA 包队列(供后续 DataPlayer 消费)
 
     // TODO
     // Clock           extern_clock{&extern_clock.m_serial, SYNC_TYPE_EXTERN};                 // 外部时钟
