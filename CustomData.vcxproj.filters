@@ -63,6 +63,12 @@
     <ClCompile Include="AVPlayer\src\video_player.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="AVPlayer\src\ttf_renderer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomMetadata\custom_data.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="CustomMetadata\usr.proto" />
@@ -120,6 +126,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="CustomMetadata\json.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AVPlayer\include\ttf_renderer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomMetadata\custom_data.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomMetadata\json_stream_data.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

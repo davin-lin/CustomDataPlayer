@@ -14,7 +14,7 @@ extern "C" {
 //   1 = JSON     (metadata key: "video_custom_data",         目标文件 walking-dead-json.mp4)
 //   2 = Protobuf (metadata key: "video_custom_pb_data",      目标文件 walking-dead-protobuf.mp4)
 #ifndef CUSTOM_DATA_FORMAT
-#define CUSTOM_DATA_FORMAT 2
+#define CUSTOM_DATA_FORMAT 1
 #endif
 
 #define CUSTOM_DATA_FORMAT_JSON     1
@@ -41,5 +41,5 @@ inline CustomData ParseCustomData(AVFormatContext* fmtCtx) {
 }
 #define DEFAULT_MEDIA_PATH "D:\\software\\VisualStudio\\code\\CustomData\\walking-dead-protobuf.mp4"
 #else
-#error "Invalid CUSTOM_DATA_FORMAT value"
+#warning "Invalid CUSTOM_DATA_FORMAT value"
 #endif

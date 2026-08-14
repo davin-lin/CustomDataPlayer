@@ -169,6 +169,7 @@
     <ClInclude Include="AVPlayer\include\video_player.h" />
     <ClInclude Include="CustomMetadata\custom_data.h" />
     <ClInclude Include="CustomMetadata\json.hpp" />
+    <ClInclude Include="CustomMetadata\json_stream_data.h" />
     <ClInclude Include="CustomMetadata\proto_data.h" />
     <ClInclude Include="CustomMetadata\usr.pb.h" />
   </ItemGroup>

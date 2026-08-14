@@ -1,6 +1,7 @@
 #include "CustomMetadata/custom_data.h"
 #include "CustomMetadata/json_data.h"
 #include "CustomMetadata/proto_data.h"
+#include "CustomMetadata/json_stream_data.h"
 #include "event_loop.h"
 #include "player.h"
 
@@ -26,8 +27,10 @@ int main(int argc, char** argv) {
 	//	std::cerr << "Failed to verify Protobuf metadata." << std::endl;
 	//	return -1;
 	//}
+	//CreateJsonStreamMP4();
 
-	const char* mediaPath = (argc > 1) ? argv[1] : DEFAULT_MEDIA_PATH;
+	//const char* mediaPath = (argc > 1) ? argv[1] : DEFAULT_MEDIA_PATH;
+	const char* mediaPath = "./walking-dead-json-stream.mp4";
 	Player player;
     if (player.Open(mediaPath) < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Failed to open media file: %s, exiting\n", mediaPath);
