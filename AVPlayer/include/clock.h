@@ -18,13 +18,13 @@ public:
     SYNC_TYPE SyncType() const;
 
 private:
-    int serial_ = 0;            // ʱ������packet���е����к�
-    int paused_ = 0;            // ����/��ͣ����
-    double pts_ = 0.0;          // ʱ�ӻ�׼
-    double ptsDrift_ = 0.0;    // ʱ�ӻ�׼ - ����ʱ�ӵ�ʱ�� pts_ - lastUpdated_
-    double speed_ = 1.0;        // ���ٲ���
-    double lastUpdated_ = 0.0; // �ϴ�ʱ�Ӹ��µ�ʱ��
-    int* pktSerial_ = nullptr; // packet�����е����к�
-    SYNC_TYPE syncType_ = SYNC_TYPE_AUDIO; // ͬ������
+    int serial_ = 0;
+    int paused_ = 0;
+    double pts_ = 0.0; 
+    double ptsDrift_ = 0.0;
+    double speed_ = 1.0; 
+    double lastUpdated_ = 0.0;
+    int* pktSerial_ = nullptr;
+    SYNC_TYPE syncType_ = SYNC_TYPE_AUDIO;
 
 };

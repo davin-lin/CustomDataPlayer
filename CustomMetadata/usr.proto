@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-message Usr{
-	bytes name = 1;
-	bytes company = 2;
-	bytes type = 3;
-}

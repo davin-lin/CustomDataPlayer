@@ -17,8 +17,8 @@ extern "C" {
 
 class PacketQueue {
     struct Packet {
-        AVPacket* pkt; // packet 数据
-        int serial;    // 当前时序
+        AVPacket* pkt;
+        int serial;
     };
     friend class Context;
 public:
@@ -32,8 +32,8 @@ public:
     int Put(AVPacket* pkt);
 	int PutFlushPacket(int streamIndex);
     int Get(AVPacket* pkt, int block, int& serial);
-    int Count() const; // 队列中packet的个数
-    int Size() const;  // 队列中packet占用的内存大小
+    int Count() const; 
+    int Size() const;  
     void Flush();
     void Destroy();
     void AbortRequest();
@@ -44,8 +44,8 @@ private:
     int PutPrivate(AVPacket* pkt);
 private:
     std::queue<Packet> queue_;
-    int size_ = 0;         // 当前队列包的总大小
-    int64_t duration_ = 0; // 当前队列包的总播放时长
+    int size_ = 0;        
+    int64_t duration_ = 0; 
 
     int serial_ = 1;
     std::atomic<bool> abortRequest_ = false;

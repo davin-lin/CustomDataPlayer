@@ -13,7 +13,6 @@ extern "C" {
 }
 #endif
 
-#include "../../CustomMetadata/custom_data.h"
 #include <string>
 
 static const struct TextureFormatEntry {
@@ -93,11 +92,8 @@ int VideoPlayer::Open() {
     SDL_Rect viewport = { 0, 0, dstWidth_, dstHeight_ };
     SDL_RenderSetViewport(renderer_, &viewport);
 
-    // 初始化 TTF 渲染器，并从 Context 中设置叠加数据
     ttfRenderer_.Init();
-    if (ctx_->hasCustomData_) {
-        ttfRenderer_.SetOverlayData(ctx_->usrName_, ctx_->usrCompany_, ctx_->usrType_);
-    }
+
     return 0;
 }
 
@@ -245,9 +241,7 @@ void VideoPlayer::Display() {
     SDL_RenderClear(renderer_);
     SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
     Render();
-    ttfRenderer_.RenderOverlay(renderer_);
 
-    // 加锁读取 streamOverlayLines_(DataPlayer 在另一线程写入),避免数据竞争
     {
         std::lock_guard<std::mutex> lock(ctx_->streamOverlayMutex_);
         ttfRenderer_.SetStreamLines(ctx_->streamOverlayLines_);
@@ -282,9 +276,7 @@ void VideoPlayer::RenderLastTexture(Frame* vp) {
 
     SDL_Rect rect = { offset_x, offset_y, fit_w, fit_h };
     SDL_RenderCopy(renderer_, texture_, nullptr, &rect);
-    ttfRenderer_.RenderOverlay(renderer_);
 
-    // 加锁读取 streamOverlayLines_(DataPlayer 在另一线程写入),避免数据竞争
     {
         std::lock_guard<std::mutex> lock(ctx_->streamOverlayMutex_);
         ttfRenderer_.SetStreamLines(ctx_->streamOverlayLines_);
@@ -363,7 +355,6 @@ void VideoPlayer::UploadTexture(Uint32 sdl_pix_fmt, uint8_t* const* data, const 
 
 void VideoPlayer::RenderGpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
                                 int src_w, int src_h, int fit_w, int fit_h, int offset_x, int offset_y) {
-    // 纹理已上传且尺寸未变：直接 RenderCopy，跳过纹理重建
     if (vp->uploaded_ && lastPathWasGpu_ && src_w == width_ && src_h == height_) {
         offsetX_ = offset_x;
         offsetY_ = offset_y;
@@ -373,7 +364,6 @@ void VideoPlayer::RenderGpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl
     }
     vp->uploaded_ = 0;
 
-    // 切换到 GPU 路径：释放 CPU 路径的 swscale 资源
     if (swsCtx_) {
         sws_freeContext(swsCtx_);
         swsCtx_ = nullptr;
@@ -382,7 +372,6 @@ void VideoPlayer::RenderGpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl
         av_freep(&data_[0]);
     }
 
-    // 纹理创建在源帧分辨率，由 SDL_RenderCopy 在 GPU 端完成缩放
     CreateTexture(sdl_pix_fmt, src_w, src_h, sdl_blendmode);
     UploadTexture(sdl_pix_fmt, vp->frame_->data, vp->frame_->linesize, src_h);
 
@@ -398,7 +387,6 @@ void VideoPlayer::RenderGpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl
 
 void VideoPlayer::RenderCpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
                                 int src_w, int src_h, int fit_w, int fit_h, int offset_x, int offset_y) {
-    // 纹理已上传且尺寸未变：直接 RenderCopy
     if (vp->uploaded_ && !lastPathWasGpu_) {
         if (fit_w == width_ && fit_h == height_) {
             offsetX_ = offset_x;
@@ -410,7 +398,6 @@ void VideoPlayer::RenderCpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl
         vp->uploaded_ = 0;
     }
 
-    // 尺寸变化时重建 swscale 上下文和中间缓冲区
     if (!swsCtx_ || fit_w != width_ || fit_h != height_) {
         if (swsCtx_) {
             sws_freeContext(swsCtx_);
@@ -437,11 +424,9 @@ void VideoPlayer::RenderCpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl
         height_ = fit_h;
     }
 
-    // CPU 缩放
     sws_scale(swsCtx_, (const uint8_t* const*)vp->frame_->data, vp->frame_->linesize, 0,
         vp->frame_->height, data_, lineSize_);
 
-    // 上传缩放后的数据并渲染
     CreateTexture(sdl_pix_fmt, width_, height_, sdl_blendmode);
     UploadTexture(sdl_pix_fmt, data_, lineSize_, height_);
 

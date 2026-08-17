@@ -23,8 +23,8 @@ public:
     int Stop();
     int Close();
 
-    void ToggleMute();         // ¾²Òô
-    void UpdateVolume(int volume); // ¸üĞÂÉùÒô
+    void ToggleMute();
+    void UpdateVolume(int volume);
 
     bool IsMuted() const;
 private:

@@ -39,7 +39,7 @@ public:
         this->filename_ = av_strdup(filename);
     }
     ~Context() {
-                // FFmpeg 资源（按依赖顺序释放）
+
         if (audioSwrCtx_) {
             swr_free(&audioSwrCtx_);
         }
@@ -59,76 +59,72 @@ public:
             av_free((void*)filename_);
             filename_ = nullptr;
         }
-        // PacketQueue / FrameQueue 有自己的析构函数，自动释放内部资源
+
         if (filename_) {
             av_free((void*)filename_);
         }
     }
 
 private:
-    const char* filename_ = nullptr; // 文件名
+    const char* filename_ = nullptr;
 
-    AVFormatContext* fmtCtx_ = nullptr; // AVFormatContext 解封装上下文
+    AVFormatContext* fmtCtx_ = nullptr; 
 
-    int             audioIndex_ = -1;          // 音频流索引
-    AVCodecContext* audioCodecCtx_ = nullptr; // 音频解码器上下文
-    AVStream* audioStream_ = nullptr;    // 音频流
-    PacketQueue     audioPacketQueue_;        // 音频包队列
-    Clock           audioClock_{ &audioPacketQueue_.serial_, SYNC_TYPE_AUDIO };               // 音频时钟
-    FrameQueue      audioFrameQueue_{ &audioPacketQueue_ ,AUDIO_FRAME_QUEUE_SIZE, 1 }; // 音频帧队列
+    int             audioIndex_ = -1;
+    AVCodecContext* audioCodecCtx_ = nullptr; 
+    AVStream* audioStream_ = nullptr;    
+    PacketQueue     audioPacketQueue_;       
+    Clock           audioClock_{ &audioPacketQueue_.serial_, SYNC_TYPE_AUDIO }; 
+    FrameQueue      audioFrameQueue_{ &audioPacketQueue_ ,AUDIO_FRAME_QUEUE_SIZE, 1 }; 
     SwrContext* audioSwrCtx_ = nullptr;
 
-    int             videoIndex_ = -1;          // 视频流索引
-    AVCodecContext* videoCodecCtx_ = nullptr; // 视频解码器上下文
-    AVStream* videoStream_ = nullptr;    // 视频流
-    PacketQueue     videoPacketQueue_;        // 视频包队列
-    Clock           videoClock_{ &videoPacketQueue_.serial_, SYNC_TYPE_VIDEO };               // 视频时钟
-    AVRational      videoFrameRate_;          // 视频帧率
-    FrameQueue      videoFrameQueue_{ &videoPacketQueue_, VIDEO_FRAME_QUEUE_SIZE, 1 }; // 视频帧队列
-    double          videoFrameTimer_ = 0.0; // 记录最后一帧视频播放的时刻
+    int             videoIndex_ = -1; 
+    AVCodecContext* videoCodecCtx_ = nullptr;
+    AVStream* videoStream_ = nullptr;
+    PacketQueue     videoPacketQueue_;
+    Clock           videoClock_{ &videoPacketQueue_.serial_, SYNC_TYPE_VIDEO };
+    AVRational      videoFrameRate_;
+    FrameQueue      videoFrameQueue_{ &videoPacketQueue_, VIDEO_FRAME_QUEUE_SIZE, 1 };
+    double          videoFrameTimer_ = 0.0; 
 
-    int             subtitleIndex_ = -1;          // 字幕流索引
-    AVCodecContext* subtitleCodecCtx_ = nullptr; // 字幕解码器上下文
-    AVStream* subtitleStream_ = nullptr;    // 字幕流
-    PacketQueue     subtitlePacketQueue_;        // 字幕包队列
-    FrameQueue      subtitleFrameQueue_{ &subtitlePacketQueue_ , SUBTITLE_FRAME_QUEUE_SIZE, 1 }; // 字幕帧队列
+    int             subtitleIndex_ = -1; 
+    AVCodecContext* subtitleCodecCtx_ = nullptr; 
+    AVStream* subtitleStream_ = nullptr;
+    PacketQueue     subtitlePacketQueue_; 
+    FrameQueue      subtitleFrameQueue_{ &subtitlePacketQueue_ , SUBTITLE_FRAME_QUEUE_SIZE, 1 };
 
-    // 自定义 DATA 流(每个视频帧对应一条 JSON，存于 packet->data，无需解码器)
-    int             dataIndex_ = -1;          // DATA 流索引
-    AVStream*       dataStream_ = nullptr;    // DATA 流
-    PacketQueue     dataPacketQueue_;         // DATA 包队列(供后续 DataPlayer 消费)
+    int             dataIndex_ = -1;
+    AVStream*       dataStream_ = nullptr;
+    PacketQueue     dataPacketQueue_; 
 
-    // DATA 流实时叠加内容(DataPlayer 解析 JSON 后写入,VideoPlayer 渲染时读取)
-    // 跨线程访问:DataPlayer 线程写,视频渲染线程读,用 streamOverlayMutex_ 保护
     std::vector<std::string> streamOverlayLines_;
     std::mutex streamOverlayMutex_;
 
     // TODO
-    // Clock           extern_clock{&extern_clock.m_serial, SYNC_TYPE_EXTERN};                 // 外部时钟
+    // Clock           extern_clock{&extern_clock.m_serial, SYNC_TYPE_EXTERN}; 
 
-    double maxFrameDuration_ = 0.0; // 一帧的最大间隔
+    double maxFrameDuration_ = 0.0;
 
     std::mutex pauseMutex_;
     std::condition_variable pauseCond_;
-    std::atomic<bool> paused_ = false; // 暂停/播放
-    std::atomic<bool> stop_ = false;   // 停止
+    std::atomic<bool> paused_ = false;
+    std::atomic<bool> stop_ = false;
 
-    // seek请求
-    std::atomic<bool> seekReq_ = false;    // seek请求
+    std::atomic<bool> seekReq_ = false;
     int seekFlags_ = 0;
     int64_t seekPos_ = 0;
     int64_t seekRel_ = 0;
 
     int eof_ = 0;
-    // 强制刷新标志
+
     int forceRefresh_ = 0;
 
-    // 主时钟
+
     Clock* masterClock_ = &audioClock_;
 
-    double frameLastReturnedTime_ = 0.0; // 用于记录上一帧在解码后被返回的时间戳
-    double frameLastFilterDelay_ = 0.0;  // 用于记录上一帧通过滤镜链后的延迟时间
-    int frameDropsEarly_ = 0; // 统计被丢弃的时钟有误差的包，放入frame队列之前丢弃
+    double frameLastReturnedTime_ = 0.0; 
+    double frameLastFilterDelay_ = 0.0;  
+    int frameDropsEarly_ = 0;
     int frameDropsLate_ = 0;
 
 
@@ -136,10 +132,4 @@ private:
 
     std::mutex demuxMutex_;
     std::condition_variable demuxCond_;
-
-    // 自定义元数据(从 MP4 metadata 中的 "video_custom_data" JSON 解析)
-    bool hasCustomData_ = false;
-    std::string usrName_;
-    std::string usrCompany_;
-    std::string usrType_;
 };

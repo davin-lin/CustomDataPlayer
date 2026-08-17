@@ -31,7 +31,6 @@ void VideoDecoder::DecodeLoop() {
             continue;
         }
         // TODO add video filters, filter may add while 
-        // TODO ���� frame_last_filter_delay
 
         // av_frame_unref(frame);
         if (ctx_->videoPacketQueue_.Serial() != pktSerial_) {

@@ -44,9 +44,7 @@ int Decoder::Open() {
     AVCodecContext* codecCtx = avcodec_alloc_context3(codec);
     avcodec_parameters_to_context(codecCtx, codecpar);
 
-    // 视频解码启用多线程（帧级并行），音频不启用（收益太小）
     if (mediaType_ == AVMEDIA_TYPE_VIDEO) {
-        // 最多使用 4 个线程，避免过度竞争
         codecCtx->thread_count = 4;
         codecCtx->thread_type  = FF_THREAD_FRAME;
     }

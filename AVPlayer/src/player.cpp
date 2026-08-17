@@ -1,7 +1,6 @@
 #include "player.h"
 #include "audio_decoder.h"
 #include "video_decoder.h"
-#include "../../CustomMetadata/custom_data.h"
 
 Player::Player()
 {
@@ -22,13 +21,6 @@ int Player::Open(const char* filename) {
         return -1;
     }
 
-    // 读取 MP4 全局 metadata 中的自定义数据(格式由 CUSTOM_DATA_FORMAT 宏控制)
-    CustomData data = ParseCustomData(ctx_->fmtCtx_);
-    ctx_->hasCustomData_ = data.hasData;
-    ctx_->usrName_ = data.usrName;
-    ctx_->usrCompany_ = data.usrCompany;
-    ctx_->usrType_ = data.usrType;
-
     if (audioDecoder_->Open() < 0) {
         av_log(nullptr, AV_LOG_WARNING, "audio decoder open failed, continuing without audio\n");
     }
@@ -47,7 +39,6 @@ int Player::Open(const char* filename) {
         return -1;
     }
 
-    // DATA 流为可选,无 DATA 流时 Open 返回 -1(仅 info 日志),不影响播放
     if (dataPlayer_->Open() < 0) {
         av_log(nullptr, AV_LOG_INFO, "data player open skipped (no DATA stream)\n");
     }
@@ -78,8 +69,7 @@ void Player::Close() {
 
 void Player::TogglePause() {
     ctx_->paused_ = !ctx_->paused_;
-    // 同步视频时钟暂停状态：暂停时 Get() 返回固定 pts_，
-    // 避免 DataPlayer 误以为时间在走而持续发布 overlay 数据
+
     ctx_->videoClock_.SetPaused(ctx_->paused_);
     ctx_->pauseCond_.notify_one();
 	av_log(nullptr, AV_LOG_INFO, "toggle pause, paused=%d\n", ctx_->paused_.load());

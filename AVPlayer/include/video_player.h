@@ -61,7 +61,7 @@ private:
     int offsetX_ = 0;
     int offsetY_ = 0;
     bool isFullScreen_ = false;
-    bool lastPathWasGpu_ = false;   // 上一帧走的渲染路径：true=GPU直接上传，false=CPU swscale。切换路径时强制重新上传纹理，避免 width_/height_ 语义不一致
+    bool lastPathWasGpu_ = false;  
 
     TTFRenderer ttfRenderer_;
 };

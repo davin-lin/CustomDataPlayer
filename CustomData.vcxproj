@@ -71,8 +71,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)\AVPlayer\include;$(SolutionDir)\protobuf\include;$(SolutionDir)\SDL_ttf\include;$(SolutionDir)\SDL\include;$(SolutionDir)\ffmpeg\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\protobuf\bin;$(SolutionDir)\SDL_ttf\lib\x64;$(SolutionDir)\SDL\lib\x64;$(SolutionDir)\ffmpeg\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\AVPlayer\include;$(SolutionDir)\SDL_ttf\include;$(SolutionDir)\SDL\include;$(SolutionDir)\ffmpeg\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\SDL_ttf\lib\x64;$(SolutionDir)\SDL\lib\x64;$(SolutionDir)\ffmpeg\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -110,7 +110,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libprotobufd.lib;libprotocd.lib;SDL2_ttf.lib;SDL2.lib;SDL2main.lib;SDL2test.lib;avcodec.lib;avformat.lib;swscale.lib;avutil.lib;swresample.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2_ttf.lib;SDL2.lib;SDL2main.lib;SDL2test.lib;avcodec.lib;avformat.lib;swscale.lib;avutil.lib;swresample.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,13 +143,7 @@
     <ClCompile Include="AVPlayer\src\ttf_renderer.cpp" />
     <ClCompile Include="AVPlayer\src\video_decoder.cpp" />
     <ClCompile Include="AVPlayer\src\video_player.cpp" />
-    <ClCompile Include="CustomMetadata\custom_data.cpp" />
-    <ClCompile Include="CustomMetadata\json_data.h" />
-    <ClCompile Include="CustomMetadata\usr.pb.cc" />
     <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="CustomMetadata\usr.proto" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AVPlayer\include\audio_decoder.h" />
@@ -169,11 +163,8 @@
     <ClInclude Include="AVPlayer\include\ttf_renderer.h" />
     <ClInclude Include="AVPlayer\include\video_decoder.h" />
     <ClInclude Include="AVPlayer\include\video_player.h" />
-    <ClInclude Include="CustomMetadata\custom_data.h" />
     <ClInclude Include="CustomMetadata\json.hpp" />
     <ClInclude Include="CustomMetadata\json_stream_data.h" />
-    <ClInclude Include="CustomMetadata\proto_data.h" />
-    <ClInclude Include="CustomMetadata\usr.pb.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

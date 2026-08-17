@@ -21,7 +21,7 @@ protected:
 
     int finished_ = 0;
     int pktSerial_ = -1;
-    int packetPending_ = 0;//处理 解码器内部缓冲区已满，packet 暂时发不进去 的情况
+    int packetPending_ = 0;
     int recoderPts_ = -1;
 
     AVPacket* pkt_ = nullptr;

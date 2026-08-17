@@ -28,7 +28,6 @@ static int CreateJsonStreamMP4()
     const char* outputFile = "D:\\tmp\\walking-dead-json-stream.mp4";
     const char* jsonFile = "D:\\tmp\\data.json";
 
-    // 打开输入文件
     AVFormatContext* inputCtx = nullptr;
     int ret = avformat_open_input(&inputCtx, inputFile, nullptr, nullptr);
 
@@ -45,7 +44,6 @@ static int CreateJsonStreamMP4()
         return -1;
     }
 
-    // 查找视频流
     int videoStreamIndex = -1;
 
     for (unsigned int i = 0; i < inputCtx->nb_streams; ++i) {
@@ -65,7 +63,6 @@ static int CreateJsonStreamMP4()
 
     AVStream* videoStream = inputCtx->streams[videoStreamIndex];
 
-    // 获取 FPS
     AVRational frameRate = videoStream->avg_frame_rate;
 
     if (frameRate.num == 0 || frameRate.den == 0)
@@ -79,7 +76,6 @@ static int CreateJsonStreamMP4()
         return -1;
     }
 
-    // 获取视频时长
     double durationSeconds = 0.0;
 
     if (inputCtx->duration != AV_NOPTS_VALUE)
@@ -97,7 +93,6 @@ static int CreateJsonStreamMP4()
     std::cout << "Frame count : " << frameCount << "\n";
     std::cout << "Time base   : " << videoStream->time_base.num << "/" << videoStream->time_base.den << "\n";
 
-    // 创建输出文件
     AVFormatContext* outputCtx = nullptr;
     ret = avformat_alloc_output_context2(&outputCtx, nullptr, nullptr, outputFile);
 
@@ -107,7 +102,6 @@ static int CreateJsonStreamMP4()
         return -1;
     }
 
-    // 复制原有 Video / Audio Stream
     for (unsigned int i = 0; i < inputCtx->nb_streams; ++i) {
         AVStream* inStream = inputCtx->streams[i];
         AVStream* outStream = avformat_new_stream(outputCtx, nullptr);
@@ -132,7 +126,6 @@ static int CreateJsonStreamMP4()
         outStream->codecpar->codec_tag = 0;
     }
 
-    // 创建 DATA Stream
     AVStream* dataStream = avformat_new_stream(outputCtx, nullptr);
 
     if (!dataStream) {
@@ -146,7 +139,7 @@ static int CreateJsonStreamMP4()
     dataStream->codecpar->codec_id = AV_CODEC_ID_BIN_DATA;
     dataStream->codecpar->codec_tag = 0;
 
-    // DATA Stream 以视频帧为时间单位
+
     dataStream->time_base = av_inv_q(frameRate);
 
     std::cout << "\nDATA Stream created:\n";
@@ -156,7 +149,7 @@ static int CreateJsonStreamMP4()
     std::cout << "  codec_tag = 0x" << std::hex << dataStream->codecpar->codec_tag << std::dec << "\n";
     std::cout << "  timebase  = " << dataStream->time_base.num << "/" << dataStream->time_base.den << "\n";
 
-    // 打开输出文件
+
     if (!(outputCtx->oformat->flags & AVFMT_NOFILE)) {
         ret = avio_open(&outputCtx->pb, outputFile, AVIO_FLAG_WRITE);
 
@@ -168,7 +161,7 @@ static int CreateJsonStreamMP4()
         }
     }
 
-    // 写 MP4 Header
+
     ret = avformat_write_header(outputCtx, nullptr);
 
     if (ret < 0) {
@@ -182,7 +175,7 @@ static int CreateJsonStreamMP4()
         return -1;
     }
 
-    // 保存所有 JSON 数据
+
     json allJson = json::array();
 
     AVPacket* packet = av_packet_alloc();
@@ -196,15 +189,13 @@ static int CreateJsonStreamMP4()
     int64_t dataPacketIndex = 0;
     int64_t dataPts = 0;
 
-    // 每 0.5 秒修改一次数据
+
     const double changeInterval = 0.5;
 
-    // 读取输入 Packet
+
     while (av_read_frame(inputCtx, packet) >= 0) {
 
-        // ====================================================
-        // Video Packet
-        // ====================================================
+
         if (packet->stream_index == videoStreamIndex) {
 
             int64_t videoPts = packet->pts;
@@ -216,12 +207,10 @@ static int CreateJsonStreamMP4()
             else
                 timeSeconds = static_cast<double>(frameIndex) / fps;
 
-            // 每 0.5 秒修改一次 data_id
+
             int64_t dataId = static_cast<int64_t>(timeSeconds / changeInterval);
 
-            // =================================================
-            // 生成 JSON
-            // =================================================
+
             json data;
 
             data["frame"] = frameIndex;
@@ -242,9 +231,7 @@ static int CreateJsonStreamMP4()
 
             std::string jsonString = data.dump();
 
-            // =================================================
-            // 创建 DATA Packet
-            // =================================================
+
             AVPacket* dataPacket = av_packet_alloc();
 
             if (!dataPacket) {
@@ -266,7 +253,7 @@ static int CreateJsonStreamMP4()
 
             dataPacket->stream_index = dataStream->index;
 
-            // DATA PTS 使用连续帧号
+
             dataPacket->pts = dataPts;
             dataPacket->dts = dataPts;
             dataPacket->duration = 1;
@@ -281,7 +268,7 @@ static int CreateJsonStreamMP4()
                 break;
             }
 
-            // 打印前 20 条 DATA
+
             if (dataPacketIndex < 20) {
                 std::cout << "\nDATA #" << dataPacketIndex << "\n";
                 std::cout << "  frame       = " << frameIndex << "\n";
@@ -299,9 +286,7 @@ static int CreateJsonStreamMP4()
             ++frameIndex;
         }
 
-        // ====================================================
-        // 写原始 Video / Audio Packet
-        // ====================================================
+
         int inputStreamIndex = packet->stream_index;
 
         AVStream* inStream = inputCtx->streams[inputStreamIndex];
@@ -322,15 +307,13 @@ static int CreateJsonStreamMP4()
         av_packet_unref(packet);
     }
 
-    // 写 Trailer
+
     ret = av_write_trailer(outputCtx);
 
     if (ret < 0)
         PrintError("av_write_trailer failed", ret);
 
-    // ========================================================
-    // 保存 JSON 文件
-    // ========================================================
+
     std::ofstream jsonOutput(jsonFile);
 
     if (!jsonOutput.is_open()) {
@@ -343,9 +326,7 @@ static int CreateJsonStreamMP4()
         std::cout << "\nJSON file generated: " << jsonFile << std::endl;
     }
 
-    // ========================================================
-    // 释放资源
-    // ========================================================
+
     av_packet_free(&packet);
     avformat_close_input(&inputCtx);
 
@@ -354,9 +335,6 @@ static int CreateJsonStreamMP4()
 
     avformat_free_context(outputCtx);
 
-    // ========================================================
-    // 输出结果
-    // ========================================================
     std::cout << "\n========================================\n";
     std::cout << "Finished\n";
     std::cout << "========================================\n";
