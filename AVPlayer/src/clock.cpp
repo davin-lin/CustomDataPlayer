@@ -21,7 +21,7 @@ Clock::Clock(int* pktSerial, SYNC_TYPE syncType)
 }
 
 void Clock::Set(double pts, int serial) {
-    // ��ȡ��ǰ����¼�����΢��Ϊ����
+    // ��ȡ��ǰ����¼�����΢��Ϊ����
     double time = av_gettime_relative() / 1000000.0;
     Set_at(pts, serial, time);
 }
@@ -31,6 +31,17 @@ void Clock::Set_at(double pts, int serial, double time) {
     lastUpdated_ = time;
     ptsDrift_ = pts_ - time;
     serial_ = serial;
+}
+
+void Clock::SetPaused(int p) {
+    if (paused_ == p) {
+        return;
+    }
+    paused_ = p;
+    if (!p) {
+        // 恢复时以当前墙钟重新对齐 pts_，避免暂停期间的时间差导致时钟跳跃
+        Set(pts_, serial_);
+    }
 }
 
 double Clock::Get() {

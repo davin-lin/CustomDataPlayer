@@ -78,6 +78,9 @@ void Player::Close() {
 
 void Player::TogglePause() {
     ctx_->paused_ = !ctx_->paused_;
+    // 同步视频时钟暂停状态：暂停时 Get() 返回固定 pts_，
+    // 避免 DataPlayer 误以为时间在走而持续发布 overlay 数据
+    ctx_->videoClock_.SetPaused(ctx_->paused_);
     ctx_->pauseCond_.notify_one();
 	av_log(nullptr, AV_LOG_INFO, "toggle pause, paused=%d\n", ctx_->paused_.load());
 }

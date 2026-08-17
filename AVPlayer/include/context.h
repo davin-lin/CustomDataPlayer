@@ -1,8 +1,9 @@
-#pragma once
+﻿#pragma once
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <string>
+#include <vector>
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,6 +97,11 @@ private:
     int             dataIndex_ = -1;          // DATA 流索引
     AVStream*       dataStream_ = nullptr;    // DATA 流
     PacketQueue     dataPacketQueue_;         // DATA 包队列(供后续 DataPlayer 消费)
+
+    // DATA 流实时叠加内容(DataPlayer 解析 JSON 后写入,VideoPlayer 渲染时读取)
+    // 跨线程访问:DataPlayer 线程写,视频渲染线程读,用 streamOverlayMutex_ 保护
+    std::vector<std::string> streamOverlayLines_;
+    std::mutex streamOverlayMutex_;
 
     // TODO
     // Clock           extern_clock{&extern_clock.m_serial, SYNC_TYPE_EXTERN};                 // 外部时钟

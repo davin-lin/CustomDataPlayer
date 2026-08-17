@@ -1,4 +1,4 @@
-#include "video_player.h"
+﻿#include "video_player.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -246,6 +246,14 @@ void VideoPlayer::Display() {
     SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
     Render();
     ttfRenderer_.RenderOverlay(renderer_);
+
+    // 加锁读取 streamOverlayLines_(DataPlayer 在另一线程写入),避免数据竞争
+    {
+        std::lock_guard<std::mutex> lock(ctx_->streamOverlayMutex_);
+        ttfRenderer_.SetStreamLines(ctx_->streamOverlayLines_);
+    }
+    ttfRenderer_.RenderStreamOverlay(renderer_);
+
     SDL_RenderPresent(renderer_);
 }
 
@@ -275,6 +283,14 @@ void VideoPlayer::RenderLastTexture(Frame* vp) {
     SDL_Rect rect = { offset_x, offset_y, fit_w, fit_h };
     SDL_RenderCopy(renderer_, texture_, nullptr, &rect);
     ttfRenderer_.RenderOverlay(renderer_);
+
+    // 加锁读取 streamOverlayLines_(DataPlayer 在另一线程写入),避免数据竞争
+    {
+        std::lock_guard<std::mutex> lock(ctx_->streamOverlayMutex_);
+        ttfRenderer_.SetStreamLines(ctx_->streamOverlayLines_);
+    }
+    ttfRenderer_.RenderStreamOverlay(renderer_);
+    
     SDL_RenderPresent(renderer_);
 }
 
