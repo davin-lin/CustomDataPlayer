@@ -21,4 +21,5 @@ void Frame::Reset() {
     duration_ = 0.0;
     uploaded_ = 0;
     pos_ = 0;
+    dataLines_.clear();
 }

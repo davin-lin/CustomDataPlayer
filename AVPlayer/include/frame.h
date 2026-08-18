@@ -27,4 +27,6 @@ public:
     int64_t pos_ = 0;
     int width_ = 0;
     int height_ = 0; /* byte position of the frame in the input file */
+
+    std::vector<std::string> dataLines_;
 };

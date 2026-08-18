@@ -34,13 +34,14 @@ private:
 
     void CalcDisplayRect(int src_w, int src_h, int& fit_w, int& fit_h, int& offset_x, int& offset_y);
     void UploadTexture(Uint32 sdl_pix_fmt, uint8_t* const* data, const int* linesize, int height);
-    void RenderGpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
+    void RenderDirectUpload(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
                        int src_w, int src_h, int fit_w, int fit_h, int offset_x, int offset_y);
-    void RenderCpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
+    void RenderSwsConvert(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
                        int src_w, int src_h, int fit_w, int fit_h, int offset_x, int offset_y);
 
     double ComputeTargetDelay(double delay);
     void UpdateVideoPts(double pts, int serial);
+    void UpdateDataOverlay(Frame* vp);
 private:
     std::shared_ptr<Context> ctx_ = nullptr;
     SDL_TimerID timerId_ = 0;

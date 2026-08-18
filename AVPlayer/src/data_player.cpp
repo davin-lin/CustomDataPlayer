@@ -4,10 +4,6 @@
 #include <cmath>
 #include <vector>
 
-extern "C" {
-#include <libavutil/time.h>
-}
-
 using json = nlohmann::json;
 
 DataPlayer::DataPlayer(std::shared_ptr<Context> ctx)
@@ -67,6 +63,7 @@ int DataPlayer::Start() {
 int DataPlayer::Close() {
     if (ctx_->dataIndex_ >= 0) {
         ctx_->dataPacketQueue_.AbortRequest();
+        ctx_->dataFrameQueue_.Abort();
     }
     Stop();
     av_log(nullptr, AV_LOG_INFO,
@@ -95,10 +92,6 @@ int DataPlayer::GetDataPacket() {
         av_log(nullptr, AV_LOG_INFO,
             "[DataPlayer] recv flush/EOF packet, serial=%d recv=%lld\n",
             serial, (long long)recvCount_);
-        {
-            std::lock_guard<std::mutex> lock(ctx_->streamOverlayMutex_);
-            ctx_->streamOverlayLines_.clear();
-        }
         av_packet_unref(pkt_);
         return 0;
     }
@@ -111,21 +104,23 @@ int DataPlayer::GetDataPacket() {
 
     std::string jsonString(reinterpret_cast<const char*>(pkt_->data), pkt_->size);
 
+    double dataTime = 0.0;
+    std::vector<std::string> lines;
+
     try {
         json j = json::parse(jsonString);
 
-        int64_t frame       = j.value("frame", (int64_t)0);
-        int64_t timeMs      = j.value("time_ms", (int64_t)0);
-        int64_t dataId      = j.value("data_id", (int64_t)0);
-        int64_t value       = j.value("value", (int64_t)0);
-        double   speed      = j.value("speed", 0.0);
-        double   temper     = j.value("temperature", 0.0);
-        std::string msg     = j.value("message", std::string());
-        double   longitude  = j.value("longitude", 0.0);
-        double   latitude   = j.value("latitude", 0.0);
+        int64_t frame      = j.value("frame", (int64_t)0);
+        int64_t timeMs     = j.value("time_ms", (int64_t)0);
+        int64_t dataId     = j.value("data_id", (int64_t)0);
+        int64_t value      = j.value("value", (int64_t)0);
+        double   speed     = j.value("speed", 0.0);
+        double   temper    = j.value("temperature", 0.0);
+        std::string msg    = j.value("message", std::string());
+        double   longitude = j.value("longitude", 0.0);
+        double   latitude  = j.value("latitude", 0.0);
 
         char buf[256];
-        std::vector<std::string> lines;
         snprintf(buf, sizeof(buf), "ID: %lld",      (long long)dataId);  lines.emplace_back(buf);
         snprintf(buf, sizeof(buf), "Value: %lld",   (long long)value);   lines.emplace_back(buf);
         snprintf(buf, sizeof(buf), "Speed: %.2f",   speed);              lines.emplace_back(buf);
@@ -134,59 +129,32 @@ int DataPlayer::GetDataPacket() {
         snprintf(buf, sizeof(buf), "Lon: %.6f",     longitude);          lines.emplace_back(buf);
         snprintf(buf, sizeof(buf), "Lat: %.6f",     latitude);           lines.emplace_back(buf);
 
-        double dataTime = 0.0;
-        if (timeMs > 0) {
-            dataTime = timeMs / 1000.0;
-        } else if (ctx_->dataStream_ && ctx_->dataStream_->time_base.den != 0 &&
-                   pkt_->pts != AV_NOPTS_VALUE) {
-            dataTime = pkt_->pts * av_q2d(ctx_->dataStream_->time_base);
-        }
-
-        if (serial != ctx_->dataPacketQueue_.Serial()) {
-            av_packet_unref(pkt_);
-            return 0;
-        }
-
-        WaitForClock(dataTime, serial);
-
-        if (serial != ctx_->dataPacketQueue_.Serial()) {
-            av_packet_unref(pkt_);
-            return 0;
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(ctx_->streamOverlayMutex_);
-            ctx_->streamOverlayLines_ = std::move(lines);
-        }
-
+         if (timeMs > 0) {
+             dataTime = timeMs / 1000.0;
+         } else if (ctx_->dataStream_ && ctx_->dataStream_->time_base.den != 0 && pkt_->pts != AV_NOPTS_VALUE) {
+             dataTime = pkt_->pts * av_q2d(ctx_->dataStream_->time_base);
+         }
     } catch (const std::exception& e) {
         av_log(nullptr, AV_LOG_WARNING,
             "[DataPlayer] parse JSON failed: %s, raw=%s\n",
             e.what(), jsonString.c_str());
+        av_packet_unref(pkt_);
+        return 0;
     }
+
+    Frame* sp = ctx_->dataFrameQueue_.PeekWritable();
+    if (!sp) {
+        av_packet_unref(pkt_);
+        return 0;
+    }
+
+    sp->pts_ = dataTime;
+    sp->serial_ = serial;
+    sp->uploaded_ = 0;
+    sp->dataLines_ = std::move(lines);
+
+    ctx_->dataFrameQueue_.Push();
 
     av_packet_unref(pkt_);
     return 0;
-}
-void DataPlayer::WaitForClock(double dataTime, int serial) {
-    while (!stop_) {
-        if (serial != ctx_->dataPacketQueue_.Serial()) {
-            return;
-        }
-        double clock = ctx_->videoClock_.Get();
-        if (isnan(clock)) {
-            av_usleep(10000);
-            continue;
-        }
-
-        if (clock >= dataTime) {
-            return;
-        }
-
-        double waitSec = dataTime - clock;
-        int waitMs = static_cast<int>(waitSec * 1000.0) + 1;
-        if (waitMs < 1) waitMs = 1;
-        if (waitMs > 20) waitMs = 20;
-        av_usleep(waitMs * 1000);
-    }
 }

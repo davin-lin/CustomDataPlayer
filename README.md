@@ -1,10 +1,10 @@
 # CustomDataAVPlayer
 
-基于 SDL + FFmpeg 的视频播放器，支持从 MP4 metadata 中读取自定义数据（JSON 或 Protobuf）并以文字叠加层的形式显示在视频画面上。
+基于 SDL + FFmpeg 的视频播放器，支持 MP4 中的 **DATA 流**（JSON 格式）以文字叠加层形式与音视频同步显示。
 
 ## 相关文档
 
-- [API 文档](API.md)：各模块（Player、Demuxer、Decoder、VideoPlayer、AudioPlayer、TTFRenderer、EventLoop、Context）的对外接口与调用时序说明
+- [API 文档](API.md)：各模块（Player、Demuxer、Decoder、VideoPlayer、AudioPlayer、DataPlayer、TTFRenderer、EventLoop、Context）的对外接口与调用时序说明
 - [设计文档](Design.md)：播放器整体架构、类图、模块关系与数据流设计
 
 ## 编译
@@ -13,48 +13,42 @@
 2. 选择 `Debug | x64` 配置
 3. F5 编译运行
 
-> 第三方依赖（SDL、SDL\_ttf、FFmpeg、Protobuf、nlohmann/json）已包含在项目目录中，无需额外安装。
+> 第三方依赖（SDL、SDL\_ttf、FFmpeg）已包含在项目目录中，无需额外安装。Protobuf 仅保留头文件，运行时不需要。
 
-## 切换数据格式
+## 自定义数据流（DATA Stream）
 
-在 `CustomMetadata/custom_data.h` 中修改宏定义：
+叠加层文本来源是 MP4 中的一条 DATA 流（stream type = `AVMEDIA_TYPE_DATA`），按视频 PTS 同步显示，支持 seek/pause 后正确对齐。
 
-```cpp
-#define CUSTOM_DATA_FORMAT 1   // 1 = JSON，   默认播放 walking-dead-json.mp4
-#define CUSTOM_DATA_FORMAT 2   // 2 = Protobuf，默认播放 walking-dead-protobuf.mp4
-```
+### 数据格式
 
-修改后重新编译即可，解析入口 `ParseCustomData()` 会自动分发到对应的解析函数，播放器其余逻辑不变。
-
-## 自定义数据结构
-
-两种格式存储的字段一致：`usr_name`、`usr_company`、`usr_type`。
-
-### JSON 格式
-
-- metadata key：`video_custom_data`
-- 存储内容：JSON 字符串
+每条数据包的 payload 是 JSON 字符串，字段：
 
 ```json
 {
-    "usr_name": "linmingyang",
-    "usr_company": "OBSBOT",
-    "usr_type": "JSON"
+  "pts": 10.5,
+  "duration": 2.0,
+  "lines": [
+
+  ]
 }
 ```
 
-### Protobuf 格式
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `pts` | double | 该条数据应显示的视频 PTS（秒） |
+| `duration` | double | 持续显示时长（秒） |
+| `lines` | string[] | 显示的文本行，按顺序从上到下渲染 |
 
-- metadata key：`video_custom_pb_data`
-- 定义见 `CustomMetadata/usr.proto`
+### 生成含 DATA 流的 MP4
 
-```proto
-message Usr {
-    string name    = 1;
-    string company = 2;
-    string type    = 3;
-}
-```
+参考脚本 `CustomMetadata/json_stream_data.h` 中的 `CreateJsonStreamMP4()`，流程：
+
+1. 打开原始视频（H.264 + AAC）
+2. 新增 `AVMEDIA_TYPE_DATA` 流，codec_id = `AV_CODEC_ID_JSON`
+3. 读取 JSON 数据文件，按 pts 写入 AVPacket 到 DATA 流
+4. 复用音视频流到输出文件
+
+生成后播放：`main.cpp` 会自动检测 DATA 流并启动 DataPlayer 线程解包渲染。
 
 ## 字体
 
@@ -68,32 +62,39 @@ message Usr {
 
 如需跨平台部署，建议把 `simhei.ttf` 放入 `assets/fonts/` 目录。
 
+## 音视频同步关键参数
+
+在 `AVPlayer/include/opts.h` 中定义：
+
+| 宏 | 默认值 | 说明 |
+|---|---|---|
+| `g_framedrop` | `-1` | 丢帧策略：-1=ffplay默认（非视频主同步时丢），0=不丢，>0=强制丢 |
+| `AV_SYNC_THRESHOLD_MIN` | `0.04` | 音视频同步微调下限（s） |
+| `AV_SYNC_THRESHOLD_MAX` | `0.1` | 音视频同步微调上限，也是 snap 重置阈值 |
+| `AV_SYNC_FRAMEDUP_THRESHOLD` | `0.1` | 帧持续时长超过此值时不做帧复制补偿 |
+
 ## 文件结构
 
 ```
 CustomData/
 ├── main.cpp                      # 入口，调用 Player 播放视频
 ├── CustomData.sln / .vcxproj     # VS 工程
-├── walking-dead-json.mp4         # JSON 格式测试视频
-├── walking-dead-protobuf.mp4     # Protobuf 格式测试视频
+├── walking-dead-json-stream.mp4  # 含 DATA 流的测试视频
 │
-├── CustomMetadata/               # 自定义数据解析模块
-│   ├── custom_data.h             # 格式切换宏 + ParseCustomData() 统一入口
-│   ├── custom_data.cpp           # JSON / Protobuf 两种解析实现
+├── CustomMetadata/               # 数据写入工具（参考，不参与编译运行）
 │   ├── json.hpp                  # nlohmann/json 头文件
-│   ├── usr.proto                 # Protobuf 协议定义
-│   ├── usr.pb.h / usr.pb.cc      # Protobuf 生成代码
-│   └── json_data.h / proto_data.h # 元数据写入工具（参考用）
+│   └── json_stream_data.h        # CreateJsonStreamMP4() 写入脚本
 │
 ├── AVPlayer/                     # 播放器核心
 │   ├── include/
 │   │   ├── player.h              # 播放器主类
-│   │   ├── context.h             # 共享上下文（含自定义数据字段）
-│   │   ├── demuxer.h             # 解复用
+│   │   ├── context.h             # 共享上下文（streamOverlayLines_ 等）
+│   │   ├── demuxer.h             # 解复用（含 DATA 流分流）
 │   │   ├── decoder.h / video_decoder.h / audio_decoder.h
-│   │   ├── video_player.h        # 视频渲染（叠加层调用点）
-│   │   ├── audio_player.h        # 音频播放
-│   │   ├── ttf_renderer.h       # SDL_ttf 文字渲染封装
+│   │   ├── video_player.h        # 视频渲染 + 调度 + RenderStreamOverlay
+│   │   ├── audio_player.h        # 音频播放 + SDL callback
+│   │   ├── data_player.h         # DATA 流解包 → streamOverlayLines_
+│   │   ├── ttf_renderer.h        # SDL_ttf 文字渲染封装（流式）
 │   │   ├── frame_queue.h / packet_queue.h
 │   │   ├── clock.h
 │   │   └── event_loop.h
@@ -102,7 +103,6 @@ CustomData/
 ├── SDL/                          # SDL2 库
 ├── SDL_ttf/                      # SDL2_ttf 库
 ├── ffmpeg/                       # FFmpeg 库
-├── protobuf/                     # Protobuf 库
+├── protobuf/                     # Protobuf 头文件（保留，运行时不依赖）
 └── SDL2.dll / SDL2_ttf.dll       # 运行时动态库
 ```
-

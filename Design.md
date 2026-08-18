@@ -519,8 +519,7 @@ flowchart TB
     %% ===== 暂停分支 =====
     subgraph Pause["⏸️ 暂停流程 (paused = true)"]
         direction TB
-        P_Core["m_ctx->paused = true
-        notify_one()"]:::action
+        P_Core["m_ctx->paused = true"]:::action
 
         subgraph P_Demux["demuxer 线程"]
             P_D1["检测 paused 变化"]:::demux
@@ -552,8 +551,7 @@ flowchart TB
     %% ===== 恢复分支 =====
     subgraph Resume["▶️ 恢复流程 (paused = false)"]
         direction TB
-        R_Core["m_ctx->paused = false
-        notify_one()"]:::action
+        R_Core["m_ctx->paused = false"]:::action
 
         subgraph R_Demux["demuxer 线程"]
             R_D1["wait_for 返回"]:::demux

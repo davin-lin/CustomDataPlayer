@@ -242,10 +242,8 @@ void VideoPlayer::Display() {
     SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
     Render();
 
-    {
-        std::lock_guard<std::mutex> lock(ctx_->streamOverlayMutex_);
-        ttfRenderer_.SetStreamLines(ctx_->streamOverlayLines_);
-    }
+    Frame* vp = ctx_->videoFrameQueue_.PeekLast();
+    UpdateDataOverlay(vp);
     ttfRenderer_.RenderStreamOverlay(renderer_);
 
     SDL_RenderPresent(renderer_);
@@ -277,13 +275,44 @@ void VideoPlayer::RenderLastTexture(Frame* vp) {
     SDL_Rect rect = { offset_x, offset_y, fit_w, fit_h };
     SDL_RenderCopy(renderer_, texture_, nullptr, &rect);
 
-    {
-        std::lock_guard<std::mutex> lock(ctx_->streamOverlayMutex_);
-        ttfRenderer_.SetStreamLines(ctx_->streamOverlayLines_);
-    }
+    UpdateDataOverlay(vp);
     ttfRenderer_.RenderStreamOverlay(renderer_);
-    
+
     SDL_RenderPresent(renderer_);
+}
+
+void VideoPlayer::UpdateDataOverlay(Frame* vp) {
+    if (ctx_->dataIndex_ < 0) {
+        return;
+    }
+    if (ctx_->dataFrameQueue_.Nb_Remaining() <= 0) {
+        return;
+    }
+
+    while (ctx_->dataFrameQueue_.Nb_Remaining() > 0) {
+        Frame* sp = ctx_->dataFrameQueue_.Peek();
+        Frame* sp1 = (ctx_->dataFrameQueue_.Nb_Remaining() > 1) ? ctx_->dataFrameQueue_.PeekNext() : nullptr;
+
+        bool staleSerial = (sp->serial_ != ctx_->dataPacketQueue_.Serial());
+        bool nextReady = (sp1 && vp && !isnan(vp->pts_) && vp->pts_ >= sp1->pts_);
+
+        if (staleSerial || nextReady) {
+            ctx_->dataFrameQueue_.Next();
+        } else {
+            break;
+        }
+    }
+
+    if (ctx_->dataFrameQueue_.Nb_Remaining() <= 0) {
+        return;
+    }
+
+    Frame* sp = ctx_->dataFrameQueue_.Peek();
+    if (!vp || isnan(vp->pts_) || vp->pts_ < sp->pts_) {
+        return;
+    }
+
+    ttfRenderer_.SetStreamLines(sp->dataLines_);
 }
 
 void VideoPlayer::Render() {
@@ -306,9 +335,9 @@ void VideoPlayer::Render() {
     GetSdlPixFmtAndBlendmode(vp->frame_->format, sdl_pix_fmt, sdl_blendmode);
 
     if (sdl_pix_fmt != SDL_PIXELFORMAT_UNKNOWN) {
-        RenderGpuPath(vp, sdl_pix_fmt, sdl_blendmode, src_w, src_h, fit_w, fit_h, offset_x, offset_y);
+        RenderDirectUpload(vp, sdl_pix_fmt, sdl_blendmode, src_w, src_h, fit_w, fit_h, offset_x, offset_y);
     } else {
-        RenderCpuPath(vp, sdl_pix_fmt, sdl_blendmode, src_w, src_h, fit_w, fit_h, offset_x, offset_y);
+        RenderSwsConvert(vp, sdl_pix_fmt, sdl_blendmode, src_w, src_h, fit_w, fit_h, offset_x, offset_y);
     }
 }
 
@@ -353,7 +382,7 @@ void VideoPlayer::UploadTexture(Uint32 sdl_pix_fmt, uint8_t* const* data, const 
     }
 }
 
-void VideoPlayer::RenderGpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
+void VideoPlayer::RenderDirectUpload(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
                                 int src_w, int src_h, int fit_w, int fit_h, int offset_x, int offset_y) {
     if (vp->uploaded_ && lastPathWasGpu_ && src_w == width_ && src_h == height_) {
         offsetX_ = offset_x;
@@ -385,7 +414,7 @@ void VideoPlayer::RenderGpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl
     lastPathWasGpu_ = true;
 }
 
-void VideoPlayer::RenderCpuPath(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
+void VideoPlayer::RenderSwsConvert(Frame* vp, Uint32 sdl_pix_fmt, SDL_BlendMode sdl_blendmode,
                                 int src_w, int src_h, int fit_w, int fit_h, int offset_x, int offset_y) {
     if (vp->uploaded_ && !lastPathWasGpu_) {
         if (fit_w == width_ && fit_h == height_) {

@@ -71,7 +71,7 @@ void Player::TogglePause() {
     ctx_->paused_ = !ctx_->paused_;
 
     ctx_->videoClock_.SetPaused(ctx_->paused_);
-    ctx_->pauseCond_.notify_one();
+    //ctx_->pauseCond_.notify_one();
 	av_log(nullptr, AV_LOG_INFO, "toggle pause, paused=%d\n", ctx_->paused_.load());
 }
 

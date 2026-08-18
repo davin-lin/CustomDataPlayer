@@ -95,10 +95,8 @@ private:
 
     int             dataIndex_ = -1;
     AVStream*       dataStream_ = nullptr;
-    PacketQueue     dataPacketQueue_; 
-
-    std::vector<std::string> streamOverlayLines_;
-    std::mutex streamOverlayMutex_;
+    PacketQueue     dataPacketQueue_;
+    FrameQueue      dataFrameQueue_{ &dataPacketQueue_, DATA_FRAME_QUEUE_SIZE, 0 };
 
     // TODO
     // Clock           extern_clock{&extern_clock.m_serial, SYNC_TYPE_EXTERN}; 
@@ -106,7 +104,7 @@ private:
     double maxFrameDuration_ = 0.0;
 
     std::mutex pauseMutex_;
-    std::condition_variable pauseCond_;
+    //std::condition_variable pauseCond_;
     std::atomic<bool> paused_ = false;
     std::atomic<bool> stop_ = false;
 

@@ -16,12 +16,10 @@ public:
     virtual void Run() override;
 private:
     int GetDataPacket();
-    void WaitForClock(double dataTime, int serial);
 private:
     std::shared_ptr<Context> ctx_;
     AVPacket* pkt_ = nullptr;
     int pktSerial_ = -1;
     int64_t recvCount_ = 0;
-    int64_t logCount_ = 0;
 };
 
