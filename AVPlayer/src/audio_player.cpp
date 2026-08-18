@@ -42,9 +42,7 @@ int AudioPlayer::Open() {
 		av_log(nullptr, AV_LOG_ERROR, "SDL_OpenAudio failed: %s\n", SDL_GetError());
     }
 
-    // TODO sdl desired audio format unsupported
-    // m_audio_hw_buf_size = optained.size;
-    audioHwBufSize_ = 2048;
+    audioHwBufSize_ = obtained.size;
     bytesPerSec_ = av_samples_get_buffer_size(nullptr, desired.channels, desired.freq, AV_SAMPLE_FMT_S16, 1);
     return audioDevId_;
 }
@@ -222,7 +220,6 @@ int AudioPlayer::GetAudioData() {
     // TODO af->frame->format != audio_src.fmt
 
     // TODO swr_ctx
-    double audio_clock0 = currentAudioClock_;
     if (!isnan(af->pts_)) {
         currentAudioClock_ = af->pts_ + (double)af->frame_->nb_samples / af->frame_->sample_rate;
     }

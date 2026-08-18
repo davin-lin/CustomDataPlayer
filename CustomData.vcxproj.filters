@@ -63,6 +63,9 @@
     <ClCompile Include="AVPlayer\src\video_player.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="CustomMetadata\data.pb.cc">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AVPlayer\include\audio_decoder.h">
@@ -122,5 +125,14 @@
     <ClInclude Include="CustomMetadata\json_stream_data.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CustomMetadata\data.pb.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomMetadata\protobuf_stream_data.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CustomMetadata\data.proto" />
   </ItemGroup>
 </Project>

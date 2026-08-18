@@ -766,7 +766,7 @@ flowchart LR
 
 # 自定义数据 + TTF 叠加渲染设计
 
-> 从 MP4 metadata 读取自定义数据(JSON / Protobuf 可切换),通过 SDL_ttf 渲染成半透明叠加层,每帧绘制到视频画面上。
+> 从 MP4 内嵌的 DATA 流(`AVMEDIA_TYPE_DATA` + `AV_CODEC_ID_BIN_DATA`)按帧读取 JSON 文本,由 `DataPlayer` 解析成文本行并按 PTS 入队,`VideoPlayer` 用 ffplay 字幕式同步算法取当前生效帧,通过 SDL_ttf 渲染半透明叠加层,绘制到画面右上角。播放器运行期不依赖任何外部 metadata 解析,数据完全来自媒体文件本身的轨道。
 
 ## 整体数据流
 
@@ -774,106 +774,119 @@ flowchart LR
 flowchart LR
     classDef write fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#000
     classDef file fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px,color:#000
-    classDef parse fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    classDef ctx fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
-    classDef render fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000
+    classDef demux fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    classDef data fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
+    classDef sync fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000
     classDef sdl fill:#ffe0b2,stroke:#e65100,stroke-width:2px,color:#000
 
-    subgraph Write["写入端(离线工具)"]
-        W1["json_data.h / proto_data.h
-构造 JSON / Usr 消息"]:::write
-        W2["av_dict_set(metadata,
-key, value)"]:::write
-        W3["copyMuxWithMetadata
-重新封装 MP4"]:::write
+    subgraph Write["写入端(离线工具,不参与编译)"]
+        W1["json_stream_data.h
+CreateJsonStreamMP4()"]:::write
+        W2["avformat_new_stream(DATA)
+codec_id = BIN_DATA
+time_base = 1/fps"]:::write
+        W3["每个视频帧 → JSON 包
+av_interleaved_write_frame"]:::write
         W1 --> W2 --> W3
     end
 
     MP4[("MP4 文件
-metadata: video_custom_data
-        video_custom_pb_data")]:::file
+内含 DATA 流(BIN_DATA)
+payload = JSON 文本")]:::file
 
-    subgraph Read["读取端(Player::Open)"]
-        R1["av_dict_get(fmtCtx->metadata,
-key, nullptr, 0)"]:::parse
-        R2{"CUSTOM_DATA_FORMAT
-宏分发"}:::parse
-        R3J["ParseCustomDataFromJson
-json::parse"]:::parse
-        R3P["ParseCustomDataFromProtobuf
-Usr::ParseFromString"]:::parse
-        R4["CustomData {
-  usrName, usrCompany, usrType }"]:::parse
-        R1 --> R2
-        R2 -->|"= 1"| R3J --> R4
-        R2 -->|"= 2"| R3P --> R4
+    subgraph Demux["Demuxer::DemuxLoop"]
+        D1["av_read_frame"]:::demux
+        D2{"stream_index
+分发"}:::demux
+        D3["video/audio/subtitle
+→ 各 PacketQueue"]:::demux
+        D4["dataIndex_
+→ dataPacketQueue_.Put"]:::demux
+        D1 --> D2
+        D2 --> D3
+        D2 --> D4
     end
 
-    subgraph Store["Context 共享"]
-        C1["hasCustomData_ = true
-usrName_ / usrCompany_ / usrType_"]:::ctx
+    subgraph DP["DataPlayer 线程"]
+        P1["dataPacketQueue_.Get(pkt, serial)"]:::data
+        P2["去重: 相同 dataId 丢弃
+防 overlay 跳变"]:::data
+        P3["json::parse → 取字段"]:::data
+        P4["构建文本行
+ID/Value/Speed/Temp/Msg/Lon/Lat"]:::data
+        P5["dataFrameQueue_.Push
+带 pts + serial"]:::data
+        P1 --> P2 --> P3 --> P4 --> P5
     end
 
-    subgraph Display["VideoPlayer 渲染"]
-        D1["Open: SetOverlayData
-传自定义数据给 TTFRenderer"]:::render
-        D2["每帧 Display:
-Render() 视频帧
-RenderOverlay() 叠加层"]:::render
-        D3["SDL_RenderPresent"]:::sdl
-        D1 --> D2 --> D3
+    subgraph VP["VideoPlayer(main 线程)"]
+        V1["UpdateDataOverlay(vp)
+ffplay 字幕式同步:
+staleSerial/nextReady 清理
+PTS 到点 → SetStreamLines"]:::sync
+        V2["RenderStreamOverlay
+脏标志 + Texture 缓存
+右上角 RenderCopy"]:::sync
+        V3["SDL_RenderPresent"]:::sdl
+        V1 --> V2 --> V3
     end
 
     W3 --> MP4
-    MP4 --> R1
-    R4 --> C1
-    C1 --> D1
+    MP4 --> D1
+    D4 --> P1
+    P5 --> V1
 ```
 
-## 格式切换机制
+## DATA 流包结构
 
-```mermaid
-flowchart TB
-    classDef macro fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#000
-    classDef branch fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    classDef impl fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px,color:#000
-    classDef side fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000
+写入端 [json_stream_data.h](file:///d:/software/VisualStudio/code/CustomData/CustomMetadata/json_stream_data.h) 的 `CreateJsonStreamMP4()` 在源 MP4 基础上新增一条 DATA 流:
 
-    M["custom_data.h
-#define CUSTOM_DATA_FORMAT 1  // 1=JSON  2=Protobuf"]:::macro
+| 流属性 | 值 |
+|---|---|
+| `codec_type` | `AVMEDIA_TYPE_DATA` |
+| `codec_id` | `AV_CODEC_ID_BIN_DATA` |
+| `codec_tag` | 0 |
+| `time_base` | `av_inv_q(frameRate)`(与视频帧率倒数,如 1/24) |
 
-    M -->|"编译期分支"| B{"#if
-CUSTOM_DATA_FORMAT"}:::branch
+每个视频帧对应一个 DATA 包,包内 payload 为 JSON 文本,字段如下:
 
-    B -->|"== 1"| J["inline ParseCustomData()
-→ ParseCustomDataFromJson()"]:::impl
-    B -->|"== 2"| P["inline ParseCustomData()
-→ ParseCustomDataFromProtobuf()"]:::impl
+| 字段 | 类型 | 含义 | 示例 |
+|---|---|---|---|
+| `frame` | int64 | 视频帧序号(0-based) | 0, 1, 2... |
+| `pts` | int64 | 视频原始 pts(参考用,播放端不直接用) | 0, 1001, 2002... |
+| `time_ms` | int64 | 该帧对应的墙钟时间(ms) | 0, 42, 83... |
+| `data_id` | int64 | 数据分组 ID(每 0.5s 变一次) | 0, 0, 0..., 1, 1... |
+| `value` | int64 | 业务值 | 1000, 1001... |
+| `speed` | double | 速度 | 60.0, 60.5... |
+| `temperature` | double | 温度 | 20.0, 20.5... |
+| `message` | string | 消息文本 | "test_data_0" |
+| `longitude` | double | 经度 | 116.123456 |
+| `latitude` | double | 纬度 | 39.123456 |
 
-    J --> JK["metadata key:
-video_custom_data"]:::side
-    J --> JM["DEFAULT_MEDIA_PATH:
-walking-dead-json.mp4"]:::side
+包级别字段:
 
-    P --> PK["metadata key:
-video_custom_pb_data"]:::side
-    P --> PM["DEFAULT_MEDIA_PATH:
-walking-dead-protobuf.mp4"]:::side
-```
+| 字段 | 值 | 说明 |
+|---|---|---|
+| `pts` / `dts` | `dataPts++`(按帧递增:0,1,2...) | DATA 流自身序号,与视频 pts 不同基 |
+| `duration` | 1 | 占一个 time_base 单位 |
+| `pos` | -1 | 无字节位置 |
 
-### 切换规则
+### 同步时间来源
 
-| `CUSTOM_DATA_FORMAT` | 解析函数 | metadata key | 默认媒体文件 | 字段来源 |
-|---|---|---|---|---|
-| `1` (JSON) | `ParseCustomDataFromJson` | `video_custom_data` | `walking-dead-json.mp4` | `json::parse().value("usr_name", "")` 等 |
-| `2` (Protobuf) | `ParseCustomDataFromProtobuf` | `video_custom_pb_data` | `walking-dead-protobuf.mp4` | `usr.name()` / `usr.company()` / `usr.type()` |
+`DataPlayer::GetDataPacket` 计算叠加层 PTS 的优先级:
 
-### 设计要点
+1. 优先用 JSON 内 `time_ms / 1000.0`(墙钟秒,与视频 pts 同基)
+2. 回退用 `pkt->pts * av_q2d(dataStream_->time_base)`(DATA 流 pts × time_base)
 
-- **统一入口**:`ParseCustomData()` 是 `inline` 函数,由宏在编译期决定调用哪个实现,运行期零开销
-- **宏联动**:`DEFAULT_MEDIA_PATH` 与解析函数同步切换,避免"切了格式但还播放旧文件"的问题
-- **降级安全**:两种解析失败时都返回 `hasData = false`,`TTFRenderer` 会跳过叠加层渲染,不影响播放
-- **写入端独立**:`json_data.h` / `proto_data.h` 是离线写入工具,与播放器解耦,只要 metadata key 对得上就能读取
+> 用 `time_ms` 作为主基准,是为了让叠加层 PTS 与 `videoClock_` 直接同基(均为秒),无需 time_base 换算。DATA 流自身 pts 仅作回退。
+
+### data_id 与去重
+
+写入端 `data_id = (int64_t)(timeSeconds / 0.5)`,即每 0.5 秒一个 ID。读取端 `DataPlayer` 丢弃与上次相同 `data_id` 的包(只保留每个 ID 的第一帧),避免在 24fps 下同一组数据被反复下发导致 overlay 跳变。
+
+### 写入端独立性
+
+`CustomMetadata/` 目录仅含 `json.hpp`(nlohmann/json 头文件库) 与 `json_stream_data.h`(参考脚本),两者**不参与播放器编译**,仅作为离线生成 MP4 的工具:`CreateJsonStreamMP4()` 读取 `D:\tmp\walking-dead.mp4`,输出 `D:\tmp\walking-dead-json-stream.mp4` 与 `D:\tmp\data.json`(参考转储)。播放器只消费最终的 MP4 文件。
 
 ## 字体加载策略
 
@@ -926,7 +939,7 @@ RenderOverlay 静默跳过"]:::fail
 
 ## Texture 缓存机制
 
-> 叠加层文字内容在播放过程中通常不变(自定义数据在 Open 阶段一次性设置),为避免每帧重复 `TTF_RenderUTF8_Blended`(开销大),采用脏标志 + Texture 缓存。
+> DATA 流叠加层的内容随 PTS 实时变化(每帧由 `UpdateDataOverlay` 从 `dataFrameQueue_` 取出当前生效的 JSON 行下发),但相邻帧内容往往相同(同一 `dataId` 期间复用)。为避免每帧重复 `TTF_RenderUTF8_Blended`(开销大),采用脏标志 + Texture 缓存:仅当 `streamLines_` 内容变化时重建 `streamTexture_`,否则直接复用。
 
 ```mermaid
 sequenceDiagram
@@ -934,43 +947,57 @@ sequenceDiagram
     participant TTF as TTFRenderer
     participant Font as TTF_Font
     participant Ren as SDL_Renderer
-    participant Tex as overlayTexture_
+    participant Tex as streamTexture_
 
-    Note over VP,Tex: ========== 初始化阶段 ==========
+    Note over VP,Tex: ========== 同步下发阶段(每帧) ==========
 
-    VP->>TTF: SetOverlayData(name, company, type)
-    alt 内容与上次相同
+    VP->>TTF: SetStreamLines(lines)
+    Note over TTF: 前置守卫:<br/>lines.size() > 64 或任一行 > 1024 字节<br/>→ 置 streamDirty_=false 后 return
+    alt lines == streamLines_(内容未变)
         Note over TTF: 直接 return,不置 dirty
     else 内容变化
-        TTF->>TTF: dataDirty_ = true
+        TTF->>TTF: streamLines_ = lines
+        TTF->>TTF: streamDirty_ = true
     end
 
-    Note over VP,Tex: ========== 每帧渲染阶段 ==========
+    Note over VP,Tex: ========== 渲染阶段(每帧) ==========
 
     loop 每次 Display()
-        VP->>TTF: RenderOverlay(renderer)
+        VP->>TTF: RenderStreamOverlay(renderer)
         alt font_ == nullptr
             Note over TTF: return(静默跳过)
-        else dataDirty_ == true
-            TTF->>Font: TTF_RenderUTF8_Blended(line, color)
-            Font-->>TTF: SDL_Surface*(每行)
-            TTF->>TTF: SDL_CreateRGBSurface(canvas)
-            TTF->>TTF: SDL_FillRect(半透明黑底)
-            TTF->>TTF: SDL_BlitSurface(逐行贴到 canvas)
-            TTF->>Ren: SDL_CreateTextureFromSurface(canvas)
-            Ren-->>TTF: 新 overlayTexture_
-            TTF->>Tex: SDL_DestroyTexture(旧)
-            TTF->>TTF: overlayTexture_ = 新
-            TTF->>TTF: dataDirty_ = false
-        else dataDirty_ == false
-            Note over TTF: 复用 overlayTexture_(零开销)
+        else streamDirty_ == true
+            TTF->>TTF: BuildStreamTexture(renderer)
+            alt streamLines_ 为空
+                TTF->>Tex: SDL_DestroyTexture(清空)
+                Note over TTF: streamTexture_=nullptr,<br/>streamW_/streamH_=0
+            else 非空
+                TTF->>Font: TTF_RenderUTF8_Blended(line, white)
+                Font-->>TTF: SDL_Surface*(每行)
+                TTF->>TTF: 求 maxW,计算 canvas 尺寸
+                TTF->>TTF: SDL_CreateRGBSurfaceWithFormat(RGBA8888)
+                TTF->>TTF: SDL_FillRect(半透明黑底 RGBA(0,0,0,160))
+                TTF->>TTF: SDL_BlitSurface(逐行贴到 canvas,padding 6)
+                TTF->>Tex: SDL_DestroyTexture(旧)
+                TTF->>Ren: SDL_CreateTextureFromSurface(canvas)
+                Ren-->>TTF: 新 streamTexture_
+                TTF->>TTF: SDL_SetTextureBlendMode(BLEND)
+                TTF->>TTF: streamW_/streamH_ = canvas 尺寸
+            end
+            TTF->>TTF: streamDirty_ = false
+        else streamDirty_ == false
+            Note over TTF: 复用 streamTexture_(零开销)
         end
-        TTF->>Ren: SDL_RenderCopy(overlayTexture_, dst={10,10})
+        alt streamTexture_ != nullptr
+            TTF->>Ren: SDL_RenderGetLogicalSize / GetRendererOutputSize
+            Note over TTF: dst = {logicalW - streamW_ - 10, 10, streamW_, streamH_}
+            TTF->>Ren: SDL_RenderCopy(streamTexture_, dst)
+        end
     end
 
     Note over VP,Tex: ========== 销毁阶段 ==========
     VP->>TTF: Destroy()
-    TTF->>Tex: SDL_DestroyTexture
+    TTF->>Tex: SDL_DestroyTexture(streamTexture_)
     TTF->>Font: TTF_CloseFont
     TTF->>TTF: TTF_Quit
 ```
@@ -979,14 +1006,18 @@ sequenceDiagram
 
 | 属性 | 值 |
 |---|---|
-| 位置 | 左上角 `(10, 10)` |
+| 位置 | 右上角 `{logicalW - streamW_ - 10, 10}`(logical 优先,fallback 到 output size) |
 | 字体大小 | 24px |
 | 文字颜色 | 白色 `RGBA(255,255,255,255)` |
 | 背景色 | 半透明黑 `RGBA(0,0,0,160)` |
-| 混合模式 | `SDL_BLENDMODE_BLEND` |
+| 混合模式 | `SDL_BLENDMODE_BLEND`(Texture 级) |
 | 内边距 | 6px |
 | 行间距 | `TTF_FontHeight(f)` |
-| 显示内容 | `Name: xxx` / `Company: xxx` / `Type: xxx`(空字段跳过) |
+| 内容守卫 | 行数 ≤ 64,单行字节 ≤ 1024,超出则放弃重建 |
+| Canvas 格式 | `SDL_PIXELFORMAT_RGBA8888` |
+| 显示内容 | DATA 流 JSON 解析所得: `ID/Value/Speed/Temp/Msg/Lon/Lat`(由 `DataPlayer::GetDataPacket` 构建) |
+| 数据来源 | `dataFrameQueue_` 当前帧的 `Frame::dataLines_`(经 `UpdateDataOverlay` 同步过滤后下发) |
+
 
 ## 关键代码位置
 

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <memory>
 #include "context.h"
@@ -21,5 +21,5 @@ private:
     AVPacket* pkt_ = nullptr;
     int pktSerial_ = -1;
     int64_t recvCount_ = 0;
+    int detectedFormat_ = 0;  // 0=unknown, 1=JSON, 2=Protobuf
 };
-

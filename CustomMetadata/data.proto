@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package customstream;
+
+message FrameData {
+    string name = 1;
+    int64 frame = 2;
+    int64 pts = 3;
+    int64 time_ms = 4;
+    int64 data_id = 5;
+    int64 value = 6;
+    double speed = 7;
+    double temperature = 8;
+    string message = 9;
+    double longitude = 10;
+    double latitude = 11;
+}
+
+message FrameDataList {
+    repeated FrameData items = 1;
+}
