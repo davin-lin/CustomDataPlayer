@@ -23,7 +23,7 @@ void AudioDecoder::DecodeLoop() {
     int gotFrame = 0;
     AVFrame* frame = av_frame_alloc();
     if (!frame) {
-                av_log(nullptr, AV_LOG_ERROR, "av_frame_alloc failed\n");
+        av_log(nullptr, AV_LOG_ERROR, "av_frame_alloc failed\n");
         return;
     }
     while (!stop_) {

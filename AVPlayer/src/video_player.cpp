@@ -208,7 +208,7 @@ double VideoPlayer::Refresh() {
                 Frame* nextvp = ctx_->videoFrameQueue_.PeekNext(); 
                 double duration = vp->VfDuration(nextvp, ctx_->maxFrameDuration_); 
                 
-                if (/*!m_ctx->step &&*/ (g_framedrop > 0 || (g_framedrop && ctx_->masterClock_->SyncType() != SYNC_TYPE_VIDEO)) && time > ctx_->videoFrameTimer_ + duration) {
+                if (!ctx_->step_ && (g_framedrop > 0 || (g_framedrop && ctx_->masterClock_->SyncType() != SYNC_TYPE_VIDEO)) && time > ctx_->videoFrameTimer_ + duration) {
                     ctx_->frameDropsLate_++;
                     ctx_->videoFrameQueue_.Next(); 
                     goto retry;
@@ -218,9 +218,14 @@ double VideoPlayer::Refresh() {
             ctx_->videoFrameQueue_.Next();
             ctx_->forceRefresh_ = 1;
 
-            // TODO
-            // if (is->step && !is->paused)
-            //  stream_toggle_pause(is);
+            if (ctx_->step_ && !ctx_->paused_) {
+                if (ctx_->paused_) {
+                    ctx_->videoFrameTimer_ += av_gettime_relative() / 1000000.0 - ctx_->videoClock_.LastUpdated();
+                    ctx_->videoClock_.Set(ctx_->videoClock_.Get(), ctx_->videoClock_.Serial());
+                }
+                ctx_->paused_ = !ctx_->paused_;
+                ctx_->videoClock_.SetPaused(ctx_->paused_);
+			}
         }
 display:
         if (ctx_->forceRefresh_ && ctx_->videoFrameQueue_.RindexShown()) {

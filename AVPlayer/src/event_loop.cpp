@@ -30,6 +30,9 @@ int EventLoop::Run(Player& player) {
             case SDLK_f:
                 player.ToggleFullScreen();
                 break;
+            case SDLK_d:
+                player.StepToNextFrame();
+				break;
             case SDLK_UP:
                 player.VolumeUp(5);
                 break;

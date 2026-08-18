@@ -143,7 +143,7 @@ int AudioPlayer::GetAudioData() {
         af = ctx_->audioFrameQueue_.PeekReadable();
 
         if (!af || !af->frame_) {
-            av_log(nullptr, AV_LOG_ERROR,"audio frame null\n");
+            //av_log(nullptr, AV_LOG_ERROR,"audio frame null\n");
             return -1;
         }
         //av_log(nullptr,

@@ -59,7 +59,9 @@ void FrameQueue::Push() {
 Frame* FrameQueue::PeekReadable() {
     std::unique_lock<std::mutex> lock(mutex_);
     while (size_ - rindexShown_ <= 0 && !pktq_->RequestAborted() && !abort_) {
-        cond_.wait(lock);
+        if (cond_.wait_for(lock, std::chrono::milliseconds(10)) == std::cv_status::timeout) {
+            return nullptr;
+        }
     }
     if (pktq_->RequestAborted() || abort_) {
         return nullptr;

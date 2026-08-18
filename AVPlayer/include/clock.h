@@ -16,6 +16,7 @@ public:
     double Get();
     int Serial();
     SYNC_TYPE SyncType() const;
+    double LastUpdated() const;
 
 private:
     int serial_ = 0;

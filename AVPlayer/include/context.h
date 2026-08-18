@@ -114,7 +114,7 @@ private:
     int64_t seekRel_ = 0;
 
     int eof_ = 0;
-
+    int step_ = 0;
     int forceRefresh_ = 0;
 
 

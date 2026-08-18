@@ -356,7 +356,7 @@ flowchart TB
     %% ===== Main Thread =====
     subgraph Main["🧵 main 线程"]
         M_Init["SDL_Init + Player::open/start
-创建 Window/Renderer，启动 3 个子线程"]:::thread
+创建 Window/Renderer，启动 4 个子线程"]:::thread
         M_Loop["SDL 事件循环
 事件驱动 + 20ms 超时 → 调用 refresh()"]:::thread
         M_Render["refresh → render
@@ -385,6 +385,24 @@ avcodec_send/receive → AVFrame"]:::thread
         VD_Enqueue["写入 video_frame_queue"]:::thread
     end
 
+    %% ===== Data Player Thread =====
+    subgraph DataPT["🧵 data_player 线程"]
+        DP_Get["data_packet_queue 取 packet"]:::thread
+        DP_Detect["首包 DetectFormat
+首字节 '{' → JSON，否则 → Protobuf
+detectedFormat_ 缓存"]:::sync
+        DP_Parse{"按 detectedFormat_ 分发"}:::sync
+        DP_Json["ParseJsonPayload
+json::parse + j.value()"]:::thread
+        DP_Pb["ParseProtobufPayload
+FrameData::ParseFromString
++ fd.name()/data_id()/..."]:::thread
+        DP_Build["BuildLines
+字段 → 显示行 + 计算 dataTime"]:::thread
+        DP_Enqueue["写入 data_frame_queue
+（pts + serial + dataLines_）"]:::thread
+    end
+
     %% ===== SDL Audio Callback Thread =====
     subgraph SDLAudio["🧵 SDL Audio 回调线程"]
         S_CB["callback → get_audio_data
@@ -395,8 +413,10 @@ swr_convert 重采样 → SDL stream"]:::thread
     %% ===== Queues =====
     VPQ["video_packet_queue"]:::queue
     APQ["audio_packet_queue"]:::queue
+    DPQ["data_packet_queue"]:::queue
     VFQ["video_frame_queue"]:::queue
     AFQ["audio_frame_queue"]:::queue
+    DFQ["data_frame_queue"]:::queue
 
     %% ===== Sync =====
     subgraph Sync["⏱️ A/V 同步"]
@@ -407,11 +427,13 @@ swr_convert 重采样 → SDL stream"]:::thread
     M_Init -->|"启动"| D_Read
     M_Init -->|"启动"| AD_Decode
     M_Init -->|"启动"| VD_Decode
+    M_Init -->|"启动"| DP_Get
 
     %% ===== Demuxer 数据流 ======
     D_Read --> D_Dispatch
     D_Dispatch --> VPQ
     D_Dispatch --> APQ
+    D_Dispatch --> DPQ
 
     %% ===== Decoder 数据流 ======
     VPQ --> VD_Decode
@@ -422,12 +444,28 @@ swr_convert 重采样 → SDL stream"]:::thread
     AD_Decode --> AD_Enqueue
     AD_Enqueue --> AFQ
 
+    %% ===== Data 数据流 ======
+    DPQ --> DP_Get
+    DP_Get --> DP_Detect
+    DP_Detect --> DP_Parse
+    DP_Parse -->|"kFormatJson"| DP_Json
+    DP_Parse -->|"kFormatProtobuf"| DP_Pb
+    DP_Json --> DP_Build
+    DP_Pb --> DP_Build
+    DP_Build --> DP_Enqueue
+    DP_Enqueue --> DFQ
+
     %% ===== Audio 输出 ======
     AFQ --> S_CB
 
     %% ===== Video 输出 ======
     VFQ --> M_Render
     M_Loop --> M_Render
+
+    %% ===== Data Overlay 同步（依附 Video 帧节奏）=====
+    DFQ -.->|"UpdateDataOverlay(vp)
+sp->pts_ ≤ vp->pts_ < sp1->pts_
+→ SetStreamLines"| M_Render
 
     %% ===== 同步 ======
     S_CB -.->|"pts 写入"| Clock

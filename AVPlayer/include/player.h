@@ -26,6 +26,7 @@ public:
     void ToggleFullScreen();
     void UpdateWidthHeight(int width, int height);
     void ForceRefresh();
+	void StepToNextFrame();
 
     void VolumeUp(int volume);
     void VolumeDown(int volume);

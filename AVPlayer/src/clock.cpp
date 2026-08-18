@@ -62,3 +62,7 @@ int Clock::Serial() {
 SYNC_TYPE Clock::SyncType() const {
     return syncType_;
 }
+
+double Clock::LastUpdated() const {
+    return lastUpdated_;
+}

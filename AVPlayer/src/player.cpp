@@ -1,7 +1,15 @@
 #include "player.h"
 #include "audio_decoder.h"
 #include "video_decoder.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+#include <libavutil/time.h>
+
+#ifdef __cplusplus
+}
+#endif
 Player::Player()
 {
     SDL_Init(SDL_INIT_EVERYTHING);
@@ -68,11 +76,16 @@ void Player::Close() {
 }
 
 void Player::TogglePause() {
+    if (ctx_->paused_) {
+		ctx_->videoFrameTimer_ += av_gettime_relative() / 1000000.0 - ctx_->videoClock_.LastUpdated();
+		ctx_->videoClock_.Set(ctx_->videoClock_.Get(), ctx_->videoClock_.Serial());
+    }
     ctx_->paused_ = !ctx_->paused_;
 
     ctx_->videoClock_.SetPaused(ctx_->paused_);
     //ctx_->pauseCond_.notify_one();
 	av_log(nullptr, AV_LOG_INFO, "toggle pause, paused=%d\n", ctx_->paused_.load());
+    ctx_->step_ = 0;
 }
 
 void Player::ToggleMute() {
@@ -89,6 +102,14 @@ void Player::UpdateWidthHeight(int width, int height) {
 
 void Player::ForceRefresh() {
     ctx_->forceRefresh_ = 1;
+}
+
+void Player::StepToNextFrame() {
+    if(ctx_->paused_) {
+        ctx_->paused_ = !ctx_->paused_;
+        ctx_->videoClock_.SetPaused(ctx_->paused_);
+	}
+    ctx_->step_ = 1;
 }
 
 bool Player::IsPaused() const {
